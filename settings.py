@@ -7,6 +7,7 @@ Settings module holds all current settings for the current instance of PoEHelper
 
 import json
 from pathlib import Path
+import requests
 
 class Settings:
     #default settings in the event that settings.json is empty
@@ -39,11 +40,43 @@ class Settings:
             self.settings = self.defaultSettings
             self.writeSettings()
 
+        resetString = input("Would you like to reset charater settings? YES / NO: ")
+        reset = False
+        if("yes" == resetString.lower()):
+            reset = True
+        if ('' == self.settings["league"] or '' == self.settings["account_name"] or '' == self.settings["character_name"] or '' == self.settings["POESESSID"] or reset):
+            #TODO pop up setting dialog
+            self.promptSettings(reset)
+            self.writeSettings()
+
+
+
     def writeSettings(self):
         #TODO: Add some error checking here
         f = open("settings.json", "w")
         json.dump(self.settings, f)
         f.close()
+
+    def promptSettings(self, reset):
+        if('' == self.settings["account_name"] or reset): #TODO or invalid
+            self.settings["account_name"] = input("Enter account name:")
+        if('' == self.settings["POESESSID"] or reset): #TODO or invalid
+            self.settings["POESESSID"] = input("Enter POESESSID:")
+        if('' == self.settings["league"] or reset):          
+            url = 'http://api.pathofexile.com/leagues?type=main&compact=1'
+            response = requests.get(url,cookies='')
+            leagueList = list(eval(response.text.replace("null", "None").replace("true", "True").replace("false", "False")))
+            for item in leagueList:
+                print(item["id"])
+            self.settings["league"] = input("Enter league:")
+        if('' == self.settings["character_name"] or reset):          
+            url = 'https://www.pathofexile.com/character-window/get-characters?&accountName=' + self.settings["account_name"]
+            response = requests.get(url,cookies='')
+            characterList = list(eval(response.text))
+            for character in characterList:
+                if(self.settings["league"] == character["league"]):
+                    print(character["name"])
+            self.settings["league"] = input("Enter character:")
 
     def modifySettings(self, newSettings):
         self.settings = newSettings

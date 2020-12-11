@@ -14,9 +14,11 @@ def main():
     ui.start()
     """
 
-    league = "Heist"
-    accountName = "jumper315"#"jumper314""
-    requestCookies = {'POESESSID':''}
+    settings = Settings()
+
+    league = settings.settings["league"]
+    accountName = settings.settings["account_name"]
+    requestCookies = {'POESESSID':settings.settings["POESESSID"]}
     url = 'https://www.pathofexile.com/character-window/get-stash-items?league=' + league + '&tabs=1&tabIndex=1&accountName=' + accountName
     endpoint = 'https://www.pathofexile.com/character-window/get-stash-items'
 
