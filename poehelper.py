@@ -16,13 +16,16 @@ def main():
 
     league = "Heist"
     accountName = "jumper315"#"jumper314""
-    requestCookies = {'POESESSID':'56aedf579d1f6f05da01288f76886c46'}
+    requestCookies = {'POESESSID':''}
     url = 'https://www.pathofexile.com/character-window/get-stash-items?league=' + league + '&tabs=1&tabIndex=1&accountName=' + accountName
     endpoint = 'https://www.pathofexile.com/character-window/get-stash-items'
 
     RL = RateLimiter()
 
     while True:
+
+        print(RL.checkRateLimit(endpoint))
+
         response = requests.get(url,cookies=requestCookies)
 
         RL.processResponse(endpoint, response.headers)

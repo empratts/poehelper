@@ -41,7 +41,7 @@ class RateLimiter:
             One condition that allows 10 requests every 6 seconds with a 60 second timeout if you break it "10:6:60" (<limit>:<window>:<lockout>), and another condition that allows 12 requests in 12 seconds with a 60 second lockout "12:12:60".
             
             Update:
-                The 4 second windows from the trade-fetch-request-limit policy on the trade API seem to fucntiond different than the 60+ second windows from the ""character-window/get-stash-items" API. It is possible that the 2 API's implement rate limiting
+                The 4 second windows from the trade-fetch-request-limit policy on the trade API seem to fucntiond different than the 60+ second windows from the character-window/get-stash-items" API. It is possible that the 2 API's implement rate limiting
                 using different methods. The trade API seems to keep a live, running count of the number of requests make in the last <window> seconds, while the character-window stash API seems to reset the number of tracked requests every <window> seconds.
 
                 Thoughts: Might be easier to just implement a request queue for each policy and only send 1 request from that queue every <limit>/<window> + .0X seconds to force observence of the rate limit wihtout having to do a ton of tracking... Will cost performance in
@@ -86,8 +86,10 @@ class RateLimiter:
 
         for rule in rules.values():
             for condition in rule:
-                if condition["state"][0] >= condition["limit"][0] - 1:
+                if condition["state"] >= condition["limit"] - 1:
                     return False
+
+        print(self.policies)
 
         return True
 
@@ -125,6 +127,7 @@ class RateLimiter:
                     self.policyMaxAges[policy] = age
         
         self.logRequest(policy)
+        print(self.policies)
 
             
     def updateWindows(self):
