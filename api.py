@@ -12,20 +12,56 @@ import datetime
 class API:
 
     def __init__(self, settings):
-        self.chaosTabURL = 'https://www.pathofexile.com/character-window/get-stash-items?league={}&tabs=1&tabIndex={}&accountName={}'
+        self.stashTabURL = 'https://www.pathofexile.com/character-window/get-stash-items?league={}&tabs=1&tabIndex={}&accountName={}'
+        self.stashTabAPI = 'https://www.pathofexile.com/character-window/get-stash-items'
         self.characterURL = 'https://www.pathofexile.com/character-window/get-items'
+        self.characterAPI = 'https://www.pathofexile.com/character-window/get-items'
         self.characterPostData = {'accountName':settings["account_name"],'realm':'pc','character':settings["character_name"]}
-        self.rateLimit = {}
+        self.rateLimit = RateLimiter()
 
-    def updateStashTab(self, index):
-        #update all the chaos tabs
+    def updateStashTab(self, league, tabIndex, account, POESESSID):
+        tab = {}
 
-        #check current time
-        #now = datetime.datetime.now()
+        if self.rateLimit.checkRateLimit(self.stashTabAPI):
+            requestCookies = {'POESESSID':POESESSID}
+            url = self.stashTabURL.format(league, tabIndex, account)
+            response = requests.get(url,cookies=requestCookies)
+
+            if response.status_code != 200:
+                print("HTTP Error: " + str(response.status_code))
+            else:
+                tab = response.json()
+
+            self.rateLimit.processResponse(self.stashTabAPI, response.headers) #are these headers valid in non-200 status cases?
+        #add code here to return a cached response if the rate limit is reached
+        
+        return tab
+       
+    def updateCharacter(self, account, character, POESESSID):
+        tab = {}
+
+        if self.rateLimit.checkRateLimit(self.characterAPI):
+            requestCookies = {'POESESSID':POESESSID}
+            data = {'accountName':account,'realm':'pc','character':character}
+            url = self.characterURL
+
+            response = requests.post(url, cookies=requestCookies, data=data)
+
+            if response.status_code != 200:
+                print("HTTP Error: " + str(response.status_code))
+            else:
+                tab = response.json()
+
+            self.rateLimit.processResponse(self.characterAPI, response.headers) #are these headers valid in non-200 status cases?
+
+        return tab
+    
+    def tradeSearch(self, parameters):
+
         return
 
-                
-    def updateCharacter(self):
+    def tradeItemFetch(self, ids):
+
         return
 
 class RateLimiter:
@@ -132,7 +168,6 @@ class RateLimiter:
             
     def updateWindows(self):
         now = datetime.datetime.now()
-
         
         for policy in self.policyMaxAges:
             #for each policy, remove all requests that are older than the max age

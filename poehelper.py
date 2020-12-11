@@ -14,13 +14,17 @@ def main():
     ui.start()
     """
 
-    league = "Heist"
-    accountName = "jumper315"#"jumper314""
-    requestCookies = {'POESESSID':''}
-    url = 'https://www.pathofexile.com/character-window/get-stash-items?league=' + league + '&tabs=1&tabIndex=1&accountName=' + accountName
-    endpoint = 'https://www.pathofexile.com/character-window/get-stash-items'
+    
 
     RL = RateLimiter()
+    stgs = Settings()
+    stgs.writeSettings()
+
+    league = stgs.settings["league"]
+    accountName = stgs.settings["account_name"]
+    requestCookies = {'POESESSID':stgs.settings["POESESSID"]}
+    url = 'https://www.pathofexile.com/character-window/get-stash-items?league=' + league + '&tabs=1&tabIndex=1&accountName=' + accountName
+    endpoint = 'https://www.pathofexile.com/character-window/get-stash-items'
 
     while True:
 
