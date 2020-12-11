@@ -76,7 +76,7 @@ class Settings:
             for character in characterList:
                 if(self.settings["league"] == character["league"]):
                     print(character["name"])
-            self.settings["league"] = input("Enter character:")
+            self.settings["character_name"] = input("Enter character:")
 
     def modifySettings(self, newSettings):
         self.settings = newSettings
