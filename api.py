@@ -11,21 +11,20 @@ import datetime
 
 class API:
 
-    def __init__(self, settings):
+    def __init__(self):
         self.stashTabURL = 'https://www.pathofexile.com/character-window/get-stash-items?league={}&tabs=1&tabIndex={}&accountName={}'
         self.stashTabAPI = 'https://www.pathofexile.com/character-window/get-stash-items'
         self.characterURL = 'https://www.pathofexile.com/character-window/get-items'
         self.characterAPI = 'https://www.pathofexile.com/character-window/get-items'
-        self.characterPostData = {'accountName':settings["account_name"],'realm':'pc','character':settings["character_name"]}
         self.rateLimit = RateLimiter()
 
     def updateStashTab(self, league, tabIndex, account, POESESSID):
         tab = {}
 
         if self.rateLimit.checkRateLimit(self.stashTabAPI):
-            requestCookies = {'POESESSID':POESESSID}
+            cookies = {'POESESSID':POESESSID}
             url = self.stashTabURL.format(league, tabIndex, account)
-            response = requests.get(url,cookies=requestCookies)
+            response = requests.get(url,cookies=cookies)
 
             if response.status_code != 200:
                 print("HTTP Error: " + str(response.status_code))
@@ -41,11 +40,11 @@ class API:
         tab = {}
 
         if self.rateLimit.checkRateLimit(self.characterAPI):
-            requestCookies = {'POESESSID':POESESSID}
+            cookies = {'POESESSID':POESESSID}
             data = {'accountName':account,'realm':'pc','character':character}
             url = self.characterURL
 
-            response = requests.post(url, cookies=requestCookies, data=data)
+            response = requests.post(url, cookies=cookies, data=data)
 
             if response.status_code != 200:
                 print("HTTP Error: " + str(response.status_code))
