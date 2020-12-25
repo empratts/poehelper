@@ -6,6 +6,8 @@ Inventory module maintains a current picture of the players inventory, including
             -This might get tricky once I start looking at zone names
     -This module will also monitor ctrl-clicking things in and out of the inventory while in towns (dumping and selling)
 """
+#This dictionary is used to parse items. It contains all the properties to look for, and their default values should the property not exist in the API response
+itemProperties = {"x":-5,"y":-5,"w":1,"h":1,"identified":True,"sockets":[],"typeLine":"","frameType":1,"ilvl":0,"inventoryID":"MainInventory","implicitMods":[],"explicitMods":[],"craftedMods":[],"socketedItems":[]}
 
 class Inventory:
 
@@ -24,7 +26,7 @@ class Inventory:
         self.vendor = {}
 
     def parseStash(self, response, tab):
-        items = response["items"]
+        responseItems = response["items"]
 
         for description in response["tabs"]:
             if description["i"] == tab:
@@ -43,52 +45,24 @@ class Inventory:
                     for _ in range(12):
                         self.stashFill[tab][x].append("")
 
-        for item in items:
-            if item["id"] in self.stash:
-                itemInfo = self.stash[item["id"]]
-                itemInfo["x"] = item["x"]
-                itemInfo["y"] = item["y"]
-                itemInfo["tab"] = tab
-                #this part might need to include deleting and completely redoing the item in the database if it is common for items to get modified after being added
-            else:
-                stashItem = {"x":item["x"],"y":item["y"],"w":item["w"],"h":item["h"],"tab":tab}
-                
-                if "ilvl" in item:
-                    stashItem["ilvl"] = item["ilvl"]
-                else:
-                    stashItem["ilvl"] = 0
-                if "identified" in item:
-                    stashItem["identified"] = item["identified"]
-                else:
-                    stashItem["identified"] = True
-                if "sockets" in item:
-                    stashItem["sockets"] = item["sockets"]
-                else:
-                    stashItem["sockets"] = []
-                if "typeLine" in item: #Item typeLine is the items base type
-                    stashItem["baseType"] = item["typeLine"]
-                else:
-                    stashItem["baseType"] = ""
-                if "frameType" in item:#frameTyep includes rarity info, and other classification info. See Wiki
-                    stashItem["frameType"] = item["frameType"]
-                else:
-                    stashItem["frameType"] = -1
-                    #porbably add other attributes as they become needed by other modules
-                self.stash[item["id"]] = stashItem
+        for responseItem in responseItems:
+            
+            stashItem = parseItem(responseItem)
+            self.stash[stashItem["id"]] = stashItem["properties"]
 
             if tab in self.stashFill:
-                x = item["x"]
-                y = item["y"]
-                w = item["w"]
-                h = item["h"]
-                for w in range(item["w"]):
-                    for h in range(item["h"]):
-                        self.stashFill[tab][x+w][y+h] = item["id"]
+                x = stashItem["x"]
+                y = stashItem["y"]
+                w = stashItem["w"]
+                h = stashItem["h"]
+                for w in range(stashItem["w"]):
+                    for h in range(stashItem["h"]):
+                        self.stashFill[tab][x+w][y+h] = stashItem["id"]
 
         return
 
     def parseCharacter(self, response):
-        items = response["items"]
+        responseItems = response["items"]
         self.worn = {}
         self.main = {}
 
@@ -96,64 +70,23 @@ class Inventory:
             for y in range(5):
                 self.mainFill[x][y] = ""
 
-        for item in items:
-            if item["inventoryID"] == "MainInventory":
-                mainItem = {"x":item["x"],"y":item["y"],"w":item["w"],"h":item["h"],"tab":"MainInventory"}
+        for responseItem in responseItems:
+            if responseItem["inventoryID"] == "MainInventory":
+                mainItem = parseItem(responseItem)
                 
-                if "ilvl" in item:
-                    mainItem["ilvl"] = item["ilvl"]
-                else:
-                    mainItem["ilvl"] = 0
-                if "identified" in item:
-                    mainItem["identified"] = item["identified"]
-                else:
-                    mainItem["identified"] = True
-                if "sockets" in item:
-                    mainItem["sockets"] = item["sockets"]
-                else:
-                    mainItem["sockets"] = []
-                if "typeLine" in item: #Item typeLine is the items base type
-                    mainItem["baseType"] = item["typeLine"]
-                else:
-                    mainItem["baseType"] = ""
-                if "frameType" in item:#frameType includes rarity info, and other classification info. See Wiki
-                    mainItem["frameType"] = item["frameType"]
-                else:
-                    mainItem["frameType"] = -1
-                    #porbably add other attributes as they become needed by other modules
-                self.main[item["id"]] = mainItem
+                self.main[mainItem["id"]] = mainItem["properties"]
 
-                x = item["x"]
-                y = item["y"]
+                x = mainItem["x"]
+                y = mainItem["y"]
 
-                for w in range(item["w"]):
-                    for h in range(item["h"]):
-                        self.mainFill[x+w][y+h] = item["id"]
+                for w in range(mainItem["w"]):
+                    for h in range(mainItem["h"]):
+                        self.mainFill[x+w][y+h] = mainItem["id"]
 
             else:
-                wornItem = {"slot":item["inventoryID"], "baseType":item["typeLine"], "ilvl":item["ilvl"]}
-                if "implicitMods" in item:
-                    wornItem["implicitMods"] = item["implicitMods"]
-                else:
-                    wornItem["implicitMods"] = []
-                if "explicitMods" in item:
-                    wornItem["explicitMods"] = item["explicitMods"]
-                else:
-                    wornItem["explicitMods"] = []
-                if "craftedMods" in item:
-                    wornItem["craftedMods"] = item["craftedMods"]
-                else:
-                    wornItem["craftedMods"] = []
-                if "sockets" in item:
-                    wornItem["sockets"] = item["sockets"]
-                else:
-                    wornItem["sockets"] = []
-                if "socketedItems" in item:
-                    wornItem["socketedItems"] = item["socketedItems"]
-                else:
-                    wornItem["socketedItems"] = [] #any further tracking that needs to happen for sockets or affixes should be managed by the other modules unless there is some data that needs to be saved that we are missing
+                wornItem = parseItem(responseItem)
                 
-                self.worn[item["id"]] = wornItem
+                self.worn[wornItem["id"]] = wornItem["properties"]
                 
         return
 
@@ -168,6 +101,8 @@ class Inventory:
         ID = self.mainFill[x][y]
         w = self.main[ID]["w"]
         h = self.main[ID]["h"]
+        x = self.main[ID]["x"]
+        y = self.main[ID]["y"]
 
         #see if it will fit in the tab
         fits = False
@@ -188,7 +123,8 @@ class Inventory:
                     item = self.main[ID]
                     item["x"] = i
                     item["y"] = j
-                    self.stash[ID] = item
+                    item["inventoryID"] = "Stash" + str(tab + 1)
+                    self.stash[ID] = item 
                     self.main.pop(ID)
                     break
             if fits:
@@ -196,8 +132,43 @@ class Inventory:
         return
 
     def clickFromStash(self, tab, x, y):
-        #takes and X and Y inventory position and a tab index and moves that item to the main inventory.
-        if not 
+        #takes an X and Y inventory position and a tab index and moves that item to the main inventory.
+        
+        #look up the item to get dimensions
+        if not tab in self.stashFill:
+            return
+        
+        ID = self.stashFill[tab][x][y]
+        w = self.stash[ID]["w"]
+        h = self.stash[ID]["h"]
+        x = self.stash[ID]["x"]
+        y = self.stash[ID]["y"]
+
+        #see if it will fit in the tab
+        fits = False
+        for i in range(len(self.mainFill)):
+            for j in range(len(self.mainFill[i])):
+                fits = True
+                for k in range(w):
+                    for l in range(h):
+                        if self.mainFill[i+k][j+l] != "":
+                            fits = False
+                if fits:
+                    #if so, remove it from the stash and place it in the main inventory
+                    for k in range(w):
+                        for l in range(h):
+                            self.mainFill[i+k][j+l] = ID
+                            self.stashFill[tab][x+k][y+l] = ""
+
+                    item = self.stash[ID]
+                    item["x"] = i
+                    item["y"] = j
+                    item["inventoryID"] = "MainInventory"
+                    self.main[ID] = item 
+                    self.stash.pop(ID)
+                    break
+            if fits:
+                break
         return
 
     def clickToVendor(self, x, y):
@@ -212,4 +183,13 @@ class Inventory:
         #confirms sale of the items in the vendor window
         return
 
+def parseItem(responseItem):
+    item = {}
+    for prop in itemProperties:
+        if prop in responseItem:
+            item[prop] = responseItem[prop]
+        else:
+            item[prop] = itemProperties[prop]
     
+    return {"id":responseItem["id"], "properties":item}
+
