@@ -45,9 +45,40 @@ class Settings:
         json.dump(self.settings, f)
         f.close()
 
-    def modifySettings(self, newSettings):
-        self.settings = newSettings
+    def modifySettings(self, newUnwrappedSettings):
+        print(self.settings)
+        for k, v in newUnwrappedSettings.items():
+            self.updateSetting(k, v)
+        print(self.settings)
+
         self.writeSettings()
 
+    def updateSetting(self, wrapper, value):
+        index = wrapper.split(":")
+
+        setting = self.settings
+
+        if len(index) > 1:
+            for i in range(len(index)-1):
+                setting = setting[index[i]]
+
+        if type(setting[index[-1]]) == str:
+            setting[index[-1]] = value
+        else:
+            setting[index[-1]] = json.loads(str(value))
+
+
     def listSettings(self):
-        return self.settings.keys()
+        return unwrap(self.settings)
+
+def unwrap(settings):
+    result = {}
+    for k, v in settings.items():
+        if isinstance(v, dict):
+            r = unwrap(v)
+            for ele in r:
+                result[k+":"+ele] = r[ele]
+        else:
+            result[k] = v
+    return result
+

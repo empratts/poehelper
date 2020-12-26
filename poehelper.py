@@ -31,11 +31,10 @@ def main():
     root.wm_attributes("-transparentcolor", "white")
     root.config(bg='white')
 
-    ui = Overlay()
+    ui = Overlay(root, stgs)
 
     Button(root, text="Quit", command = root.destroy, anchor=N).place(x=root.winfo_screenwidth()/2, y=root.winfo_screenheight()-30)
-    #self.quitButton = Button(root, text="Quit", command = self.initiateExit, anchor=N)
-    #self.quitButton.place(x=self.winfo_screenwidth()/2 + 20, y=0)
+    
 
     root.mainloop()
 
