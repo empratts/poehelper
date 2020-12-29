@@ -78,6 +78,12 @@ class Settings:
 
         self.writeSettings()
 
+    def updateFileSettings(self, file, path):
+        #path should be a pathlib.Path object, not a string.
+        file = "#!"+file
+
+        self.settings[file] = str(path.as_posix())
+
     def listSettings(self):
         return unwrap(self.settings)
     
@@ -87,6 +93,14 @@ class Settings:
             return self.settings[window]
         else:
             return {"x":200,"y":200,"w":400,"h":600}
+
+    def getFileSettings(self, file):
+        #returns a string pathname that should be fed to a pathlib.Path object
+        file = "#!"+file
+        if file in self.settings:
+            return self.settings[file]
+        else:
+            return '.'
 
 def unwrap(settings):
     result = {}

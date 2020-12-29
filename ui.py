@@ -1,10 +1,12 @@
-from tkinter import Tk, Canvas, Frame, Toplevel, Label, Entry, BOTH, Button, N, NW, LEFT, BOTTOM, X, Y, SUNKEN, RAISED, DISABLED
+from tkinter import Tk, Canvas, Frame, Toplevel, Label, Entry, BOTH, Button, N, NW, LEFT, BOTTOM, X, Y, SUNKEN, RAISED, DISABLED, filedialog
 from functools import partial
 import time
 import json
 import threading
 import time
+from datetime import datetime
 import win32api, win32gui, win32con
+from pathlib import Path
 
 class UserInterface(Frame):
 
@@ -21,6 +23,9 @@ class UserInterface(Frame):
         self.chaosOverlay = None
         self.settings = settings
         self.inventory = inventory
+        self.logFile = None
+        self.currentLog = None #timestamp of when log was opened to make sure only 1 thread is trying to read the log at a time.
+        self.hideout = False
 
         self.canvas = Canvas(self, bd=-2)
         self.canvas.config(bg='white')
@@ -32,13 +37,60 @@ class UserInterface(Frame):
         self.chaosButton = Button(self.canvas, text="Chaos", command=self.toggleChaosOverlay, anchor=N)
         self.chaosButton.place(x=self.winfo_screenwidth()/2 - 30, y=0)
 
+        self.reopenLogfile()
         self.redraw()
 
     def redraw(self):
         return
 
+    def readLogFile(self, since):
+
+        if since != self.currentLog:
+            return
+
+        if self.logFile is None:
+            try:
+                logPath = Path(self.settings.getFileSettings("logFile"))
+                if logPath.suffix == ".txt" and logPath.exists():
+                    self.logFile = open(logPath, "r", errors='ignore')
+                    self.logFile.seek(0,2)
+                else:
+                    print("Invalid Logfile - incorrect file type or file does not exist")
+                    return
+            except IndexError:
+                print("Invalid Logfile Name")
+                return
+            except Exception as err:
+                print("Error opening log file", type(err), err)
+                return
+        
+        logLines = self.logFile.readline()
+        if len(logLines) > 0:
+            if ": You have entered " in logLines and "Hideout." == logLines[-8:]: #add more here for all towns.
+                self.hideout = True
+                #Inspect the inventory here
+                #Open the dump Interface
+            elif ": You have entered " in logLines:
+                self.hideout = False
+                #Do some checking to see if you are leaving your HO, if so full stash&inventory inspect. Otherwise just inspect main inventory
+                #Close all overlays if open.
+        
+        call = lambda : self.readLogFile(since)
+        self.master.after(100, call)
+
+    def reopenLogfile(self):
+        if self.logFile is not None:
+            self.logFile.close()
+            self.logFile = None
+
+        now = datetime.now()
+        self.currentLog = now
+        self.readLogFile(now)
+
+        pass
+
     def optionsMenu(self):
-        if self.menu == None:
+        if self.menu is None:
             self.menu = SettingsMenu(self.master, self)
         else:
             self.closeOptionsMenu()
@@ -49,7 +101,7 @@ class UserInterface(Frame):
         self.menu = None
 
     def toggleChaosOverlay(self):
-        if self.chaosOverlay == None:
+        if self.chaosOverlay is None:
             settings = self.settings.getWindowSettings("Chaos")
             self.chaosOverlay = Overlay(self,settings["x"],settings["y"],settings["w"],settings["h"],settings["cellGap"],settings["border"],settings["tabType"])
             for i in range(24):
@@ -59,9 +111,9 @@ class UserInterface(Frame):
             self.chaosOverlay = None
 
     def killAllThreads(self):
-        if self.menu != None:
+        if self.menu is not None:
             self.menu.destroy()
-        if self.chaosOverlay != None:
+        if self.chaosOverlay is not None:
             self.chaosOverlay.destroy()
 
 class SettingsMenu(Toplevel):
@@ -102,8 +154,32 @@ class SettingsMenu(Toplevel):
 
         settingsFrame.pack()
 
+        logButton = Button(self, text="Log File", command=self.updateLogFile, anchor=N)
+        logButton.pack()
+
+        baseButton = Button(self, text="Base Filter", command=self.updateBaseFilter, anchor=N)
+        baseButton.pack()
+
+        activeButton = Button(self, text="Active Filter", command=self.updateActiveFilter, anchor=N)
+        activeButton.pack()
+
         save = Button(self,text="Save", command=self.saveAndClose, anchor=N)
         save.pack()
+
+    def updateLogFile(self):
+        initial = self.parent.settings.getFileSettings("logFile")
+        filePath = Path(filedialog.askopenfilename(initialdir=initial, title="Select PoE Log File", filetypes = (("Text files", "*.txt*"), ("all files", "*.*"))))
+        self.parent.settings.updateFileSettings("logFile", filePath)
+
+    def updateBaseFilter(self):
+        initial = self.parent.settings.getFileSettings("baseFilter")
+        filePath = Path(filedialog.askopenfilename(initialdir=initial, title="Select PoE Log File", filetypes = (("Filter files", "*.filter*"), ("all files", "*.*"))))
+        self.parent.settings.updateFileSettings("baseFilter", filePath)
+
+    def updateActiveFilter(self):
+        initial = self.parent.settings.getFileSettings("activeFilter")
+        filePath = Path(filedialog.askopenfilename(initialdir=initial, title="Select PoE Log File", filetypes = (("Filter files", "*.filter*"), ("all files", "*.*"))))
+        self.parent.settings.updateFileSettings("activeFilter", filePath)
 
     def saveAndClose(self):
         settings = {}
@@ -111,6 +187,8 @@ class SettingsMenu(Toplevel):
             settings[k] = v.get()
 
         self.parent.settings.modifySettings(settings)
+
+        self.parent.reopenLogfile()
 
         self.parent.closeOptionsMenu()
 

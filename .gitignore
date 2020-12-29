@@ -1,4 +1,5 @@
 settings.json
+backup_settings.json
 *.code-workspace
 __pycache*
 .vscode
