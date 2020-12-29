@@ -46,14 +46,12 @@ class Settings:
         f.close()
 
     def modifySettings(self, newUnwrappedSettings):
-        print(self.settings)
         for k, v in newUnwrappedSettings.items():
-            self.updateSetting(k, v)
-        print(self.settings)
+            self.updateWrappedSetting(k, v)
 
         self.writeSettings()
 
-    def updateSetting(self, wrapper, value):
+    def updateWrappedSetting(self, wrapper, value):
         index = wrapper.split(":")
 
         setting = self.settings
@@ -67,18 +65,38 @@ class Settings:
         else:
             setting[index[-1]] = json.loads(str(value))
 
+    def updateWindowSettings(self, window, w, h, x, y):
+        window = "#"+window
+
+        if not window in self.settings:
+            self.settings[window] = {}
+        
+        self.settings[window]["x"] = x
+        self.settings[window]["y"] = y
+        self.settings[window]["w"] = w
+        self.settings[window]["h"] = h
+
+        self.writeSettings()
 
     def listSettings(self):
         return unwrap(self.settings)
+    
+    def getWindowSettings(self, window):
+        window = "#"+window
+        if window in self.settings:
+            return self.settings[window]
+        else:
+            return {"x":200,"y":200,"w":400,"h":600}
 
 def unwrap(settings):
     result = {}
     for k, v in settings.items():
-        if isinstance(v, dict):
-            r = unwrap(v)
-            for ele in r:
-                result[k+":"+ele] = r[ele]
-        else:
-            result[k] = v
+        if k[0] != "#":
+            if isinstance(v, dict):
+                r = unwrap(v)
+                for ele in r:
+                    result[k+":"+ele] = r[ele]
+            else:
+                result[k] = v
     return result
 

@@ -11,7 +11,7 @@ itemProperties = {"x":-5,"y":-5,"w":1,"h":1,"identified":True,"sockets":[],"type
 
 class Inventory:
 
-    def __intit__(self):
+    def __init__(self):
         self.stash = {}
         self.stashFill = {}
         self.main = {}
