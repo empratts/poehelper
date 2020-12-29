@@ -22,12 +22,6 @@ class UserInterface(Frame):
         self.settings = settings
         self.inventory = inventory
 
-        self.x = 23
-        self.y = 170
-
-        self.w = 840
-        self.h = 840
-
         self.canvas = Canvas(self, bd=-2)
         self.canvas.config(bg='white')
         self.canvas.pack(fill=BOTH, expand=1)
