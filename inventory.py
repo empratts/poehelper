@@ -7,7 +7,7 @@ Inventory module maintains a current picture of the players inventory, including
     -This module will also monitor ctrl-clicking things in and out of the inventory while in towns (dumping and selling)
 """
 #This dictionary is used to parse items. It contains all the properties to look for, and their default values should the property not exist in the API response
-itemProperties = {"x":-5,"y":-5,"w":1,"h":1,"identified":True,"sockets":[],"typeLine":"","frameType":1,"ilvl":0,"inventoryID":"MainInventory","implicitMods":[],"explicitMods":[],"craftedMods":[],"socketedItems":[]}
+itemProperties = {"x":-5,"y":-5,"w":1,"h":1,"identified":True,"sockets":[],"typeLine":"","frameType":1,"ilvl":0,"inventoryId":"MainInventory","implicitMods":[],"explicitMods":[],"craftedMods":[],"socketedItems":[]}
 
 class Inventory:
 
@@ -45,21 +45,35 @@ class Inventory:
                     for _ in range(12):
                         self.stashFill[tab][x].append("")
 
+        self.purgeStash(tab)
+
         for responseItem in responseItems:
             
             stashItem = parseItem(responseItem)
             self.stash[stashItem["id"]] = stashItem["properties"]
 
             if tab in self.stashFill:
-                x = stashItem["x"]
-                y = stashItem["y"]
-                w = stashItem["w"]
-                h = stashItem["h"]
-                for w in range(stashItem["w"]):
-                    for h in range(stashItem["h"]):
+                x = stashItem["properties"]["x"]
+                y = stashItem["properties"]["y"]
+                w = stashItem["properties"]["w"]
+                h = stashItem["properties"]["h"]
+                for w in range(stashItem["properties"]["w"]):
+                    for h in range(stashItem["properties"]["h"]):
                         self.stashFill[tab][x+w][y+h] = stashItem["id"]
 
         return
+
+    def purgeStash(self, tab):
+        inventoryId = "Stash" + str(tab + 1)
+
+        staleItems = []
+
+        for item in self.stash:
+            if self.stash[item]["inventoryId"] == inventoryId:
+                staleItems.append(item)
+
+        for item in staleItems:
+            self.stash.pop(item)
 
     def parseCharacter(self, response):
         responseItems = response["items"]
@@ -71,23 +85,23 @@ class Inventory:
                 self.mainFill[x][y] = ""
 
         for responseItem in responseItems:
-            if responseItem["inventoryID"] == "MainInventory":
+            if responseItem["inventoryId"] == "MainInventory":
                 mainItem = parseItem(responseItem)
                 
                 self.main[mainItem["id"]] = mainItem["properties"]
 
-                x = mainItem["x"]
-                y = mainItem["y"]
+                x = mainItem["properties"]["x"]
+                y = mainItem["properties"]["y"]
 
-                for w in range(mainItem["w"]):
-                    for h in range(mainItem["h"]):
+                for w in range(mainItem["properties"]["w"]):
+                    for h in range(mainItem["properties"]["h"]):
                         self.mainFill[x+w][y+h] = mainItem["id"]
 
             else:
                 wornItem = parseItem(responseItem)
                 
                 self.worn[wornItem["id"]] = wornItem["properties"]
-                
+        
         return
 
     def clickToStash(self, tab, x, y):
@@ -123,7 +137,7 @@ class Inventory:
                     item = self.main[ID]
                     item["x"] = i
                     item["y"] = j
-                    item["inventoryID"] = "Stash" + str(tab + 1)
+                    item["inventoryId"] = "Stash" + str(tab + 1)
                     self.stash[ID] = item 
                     self.main.pop(ID)
                     break
@@ -163,7 +177,7 @@ class Inventory:
                     item = self.stash[ID]
                     item["x"] = i
                     item["y"] = j
-                    item["inventoryID"] = "MainInventory"
+                    item["inventoryId"] = "MainInventory"
                     self.main[ID] = item 
                     self.stash.pop(ID)
                     break
@@ -192,4 +206,3 @@ def parseItem(responseItem):
             item[prop] = itemProperties[prop]
     
     return {"id":responseItem["id"], "properties":item}
-

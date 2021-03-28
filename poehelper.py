@@ -1,7 +1,8 @@
 #Main driver for PoEHelper
 from settings import Settings
-from api import RateLimiter
+from api import API
 from ui import UserInterface
+from chaos import Chaos
 from inventory import Inventory
 from tkinter import Tk, N, Button
 import requests
@@ -25,8 +26,10 @@ def main():
     root.config(bg='white')
 
     inv = Inventory()
+    api = API()
+    chaos = Chaos(stgs, inv)
 
-    ui = UserInterface(root, stgs, inv)
+    ui = UserInterface(root, stgs, inv, api, chaos)
 
     Button(root, text="Quit", command = gracefulExit, anchor=N).place(x=root.winfo_screenwidth()/2, y=root.winfo_screenheight()-30)
 

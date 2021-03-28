@@ -10,19 +10,23 @@ from pathlib import Path
 
 class UserInterface(Frame):
 
-    def __init__(self, master, settings, inventory):
+    def __init__(self, master, settings, inventory, api, chaos):
         super().__init__(master=master)
 
-        self.initUI(settings, inventory)
+        self.initUI(settings, inventory, api, chaos)
 
-    def initUI(self, settings, inventory):
+    def initUI(self, settings, inventory, api, chaos):
 
         self.master.title("Overlay Frame")
         self.pack(fill=BOTH, expand=1)
         self.menu = None
         self.chaosOverlay = None
+        self.mainOverlay = None
+        self.vendorOverlay = None
         self.settings = settings
         self.inventory = inventory
+        self.api = api
+        self.chaos = chaos
         self.logFile = None
         self.currentLog = None #timestamp of when log was opened to make sure only 1 thread is trying to read the log at a time.
         self.hideout = False
@@ -36,6 +40,9 @@ class UserInterface(Frame):
 
         self.chaosButton = Button(self.canvas, text="Chaos", command=self.toggleChaosOverlay, anchor=N)
         self.chaosButton.place(x=self.winfo_screenwidth()/2 - 30, y=0)
+
+        self.updateButton = Button(self.canvas, text="update", command=self.updateStash, anchor=N)
+        self.updateButton.place(x=self.winfo_screenwidth()/2 - 30, y=25)
 
         self.reopenLogfile()
         self.redraw()
@@ -66,17 +73,76 @@ class UserInterface(Frame):
         
         logLines = self.logFile.readline()
         if len(logLines) > 0:
-            if ": You have entered " in logLines and "Hideout." == logLines[-8:]: #add more here for all towns.
+            if ": You have entered " in logLines and "Hideout." in logLines: #add more here for all towns. Also figure out what the game logs going in and out of the azurite mine
+                if self.hideout:
+                    #moving from one safe zone to another, inspect both stash and character
+                    print("SUCCESS")
+                    self.updateStash()
+                    self.updateCharacter()
+                else:
+                    #moving from a non-stash zone to a safe zone, so only update the character
+                    self.updateCharacter()
+
                 self.hideout = True
-                #Inspect the inventory here
-                #Open the dump Interface
+
             elif ": You have entered " in logLines:
+                if self.hideout:
+                    #Leaving a safe zone, inspect the stash and character
+                    self.updateStash()
+                    self.updateCharacter()
+                else:
+                    #moving from a non-stash zone to another, only update the character
+                    self.updateCharacter()
+
+                for zone, level in self.settings.combatZones.items():
+                    if zone in logLines:
+                        print(zone, level)
+
                 self.hideout = False
-                #Do some checking to see if you are leaving your HO, if so full stash&inventory inspect. Otherwise just inspect main inventory
-                #Close all overlays if open.
         
         call = lambda : self.readLogFile(since)
         self.master.after(100, call)
+
+    def updateStash(self):
+        #look for the chaos tab in the last place it was found
+        league = self.settings.currentSettings["league"]
+        tabIndex = self.settings.currentSettings["chaos"]["index"]
+        account = self.settings.currentSettings["account"]
+        POESESSID = self.settings.currentSettings["POESESSID"]
+
+        tabName = self.settings.currentSettings["chaos"]["tab"]
+
+        stash = self.api.updateStashTab(league, tabIndex, account, POESESSID)
+
+        if stash != {}:
+            for tab in stash["tabs"]:
+                if tab["n"] == tabName:
+                    if tab["i"] != tabIndex:
+                        #the tab has moved in the stash. Update its index in the settings and request it at its new location.
+                        tabIndex = tab["i"]
+                        self.settings.updateWrappedSetting("chaos:index", tab["i"])
+                        stash = self.api.updateStashTab(league, tab["i"], account, POESESSID)
+                    break
+        
+        if stash != {}:
+            chaosWindowSettings = self.settings.getWindowSettings("Chaos")
+            for tab in stash["tabs"]:
+                if tab["n"] == tabName and tab["i"] == tabIndex and tab["type"] != chaosWindowSettings["tabType"]:
+                    self.settings.updateWrappedSetting("#Chaos:tabType", tab["type"])
+                    self.settings.writeSettings()
+                    break
+    
+            self.inventory.parseStash(stash, tabIndex)
+
+    def updateCharacter(self):
+        account = self.settings.currentSettings["account"]
+        character = self.settings.currentSettings["character"]
+        POESESSID = self.settings.currentSettings["POESESSID"]
+
+        char = self.api.updateCharacter(account, character, POESESSID)
+
+        if char != {}:
+            self.inventory.parseCharacter(char)
 
     def reopenLogfile(self):
         if self.logFile is not None:
@@ -86,8 +152,6 @@ class UserInterface(Frame):
         now = datetime.now()
         self.currentLog = now
         self.readLogFile(now)
-
-        pass
 
     def optionsMenu(self):
         if self.menu is None:
@@ -103,18 +167,49 @@ class UserInterface(Frame):
     def toggleChaosOverlay(self):
         if self.chaosOverlay is None:
             settings = self.settings.getWindowSettings("Chaos")
-            self.chaosOverlay = Overlay(self,settings["x"],settings["y"],settings["w"],settings["h"],settings["cellGap"],settings["border"],settings["tabType"])
-            for i in range(24):
-                self.chaosOverlay.addHighlight(i,i,1,1,"#90fc03")
+            self.chaosOverlay = InventoryOverlay(self,settings["x"],settings["y"],settings["w"],settings["h"],settings["cellGap"],settings["border"],settings["tabType"])
+            
+            chaosSet = self.chaos.getChaosSet()
+
+            for item in chaosSet:
+                x = self.inventory.stash[item]["x"]
+                y = self.inventory.stash[item]["y"]
+                w = self.inventory.stash[item]["w"]
+                h = self.inventory.stash[item]["h"]
+                self.chaosOverlay.addHighlight(x,y,w,h,"#90fc03")
+
         else:
             self.chaosOverlay.destroy()
             self.chaosOverlay = None
 
+        """
+        if self.mainOverlay is None:
+            settings = self.settings.getWindowSettings("Main")
+            self.mainOverlay = Overlay(self,settings["x"],settings["y"],settings["w"],settings["h"],settings["cellGap"],settings["border"],settings["tabType"])
+            for i in range(5):
+                self.mainOverlay.addHighlight(i,i,1,1,"#90fc03")
+        else:
+            self.mainOverlay.destroy()
+            self.mainOverlay = None
+
+        if self.vendorOverlay is None:
+            settings = self.settings.getWindowSettings("Vendor")
+            self.vendorOverlay = Overlay(self,settings["x"],settings["y"],settings["w"],settings["h"],settings["cellGap"],settings["border"],settings["tabType"])
+            for i in range(5):
+                self.vendorOverlay.addHighlight(i,i,1,1,"#90fc03")
+        else:
+            self.vendorOverlay.destroy()
+            self.vendorOverlay = None
+        """
     def killAllThreads(self):
         if self.menu is not None:
             self.menu.destroy()
         if self.chaosOverlay is not None:
             self.chaosOverlay.destroy()
+        if self.mainOverlay is not None:
+            self.mainOverlay.destroy()
+        if self.vendorOverlay is not None:
+            self.vendorOverlay.destroy()
 
 class SettingsMenu(Toplevel):
 
@@ -192,7 +287,7 @@ class SettingsMenu(Toplevel):
 
         self.parent.closeOptionsMenu()
 
-class Overlay:
+class InventoryOverlay:
     #Overlays sit over inventory areas and highlight items. They also have the option of collecting inputs and passing 
     #information about them to the inventory module.
     def __init__(self, ui, x, y, w, h, cellGap, border, tabType):
@@ -276,6 +371,13 @@ class Overlay:
         self.lines[itemKey] = itemLines
 
     def removeHighlight(self, x, y):
+        chaosIndex = self.ui.settings.currentSettings["chaos"]["index"]
+        itemId = self.ui.inventory.stashFill[chaosIndex][x][y]
+        
+        if itemId != "":
+            x = self.ui.inventory.stash[itemId]["x"]
+            y = self.ui.inventory.stash[itemId]["y"]
+
         itemKey = (x, y)
         if itemKey in self.lines:
             for line in self.lines[itemKey]:

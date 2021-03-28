@@ -9,6 +9,10 @@ API module interfaces with the pathofexile.com API's
 import requests
 import datetime
 
+headers = {
+    'User-Agent': 'PoEHelper/0.1 (+pratts.eric@gmail.com)'
+}
+
 class API:
 
     def __init__(self):
@@ -24,7 +28,8 @@ class API:
         if self.rateLimit.checkRateLimit(self.stashTabAPI):
             cookies = {'POESESSID':POESESSID}
             url = self.stashTabURL.format(league, tabIndex, account)
-            response = requests.get(url,cookies=cookies)
+            response = requests.get(url,headers=headers,cookies=cookies)
+            print("GET: {}".format(url))
 
             if response.status_code != 200:
                 print("HTTP Error: " + str(response.status_code))
@@ -33,7 +38,6 @@ class API:
 
             self.rateLimit.processResponse(self.stashTabAPI, response.headers) #are these headers valid in non-200 status cases?
         #add code here to return a cached response if the rate limit is reached
-        
         return tab
        
     def updateCharacter(self, account, character, POESESSID):
@@ -44,7 +48,8 @@ class API:
             data = {'accountName':account,'realm':'pc','character':character}
             url = self.characterURL
 
-            response = requests.post(url, cookies=cookies, data=data)
+            response = requests.post(url, headers=headers, cookies=cookies, data=data) #if this errors, might need to change to using json instead of data
+            print("POST: {}".format(url))
 
             if response.status_code != 200:
                 print("HTTP Error: " + str(response.status_code))

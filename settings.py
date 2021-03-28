@@ -27,26 +27,54 @@ class Settings:
             
             try:
                 f = open("settings.json", "r")
-                self.settings = json.load(f)
+                self.currentSettings = json.load(f)
                 f.close()
             except json.decoder.JSONDecodeError:
                 print("Error loading JSON from settings file, using defaults")
-                self.settings = self.defaultSettings
+                self.currentSettings = self.defaultSettings
                 self.writeSettings()
                 #TODO: add some way of recovering broken settings file instead of just overwriting it?
             
         else:
-            self.settings = self.defaultSettings
+            self.currentSettings = self.defaultSettings
             self.writeSettings()
+
+        self.combatZones = {}
+
+        #load zone names and levels
+        if Path('./combatZones.txt').exists():
+            f = open('combatZones.txt', "r")
+            content = f.readlines()
+            f.close()
+
+            for line in content:
+                zone = line.strip("\n").split("-")
+                if zone[0] in self.combatZones:
+                    self.combatZones[zone[0]].append(int(zone[1]))
+                else:
+                    self.combatZones[zone[0]] = [int(zone[1])]
+        
+        self.townZones = []
+
+        #load zone names and levels
+        if Path('./townZones.txt').exists():
+            f = open('townZones.txt', "r")
+            content = f.readlines()
+            f.close()
+
+            for line in content:
+                zone = line.strip("\n")
+                self.townZones.append(zone)
+
 
     def writeSettings(self):
         #TODO: Add some error checking here
         f = open("settings.json", "w")
-        json.dump(self.settings, f)
+        json.dump(self.currentSettings, f)
         f.close()
 
-    def modifySettings(self, newUnwrappedSettings):
-        for k, v in newUnwrappedSettings.items():
+    def modifySettings(self, newWrappedSettings):
+        for k, v in newWrappedSettings.items():
             self.updateWrappedSetting(k, v)
 
         self.writeSettings()
@@ -54,7 +82,7 @@ class Settings:
     def updateWrappedSetting(self, wrapper, value):
         index = wrapper.split(":")
 
-        setting = self.settings
+        setting = self.currentSettings
 
         if len(index) > 1:
             for i in range(len(index)-1):
@@ -68,13 +96,13 @@ class Settings:
     def updateWindowSettings(self, window, w, h, x, y):
         window = "#"+window
 
-        if not window in self.settings:
-            self.settings[window] = {}
+        if not window in self.currentSettings:
+            self.currentSettings[window] = {}
         
-        self.settings[window]["x"] = x
-        self.settings[window]["y"] = y
-        self.settings[window]["w"] = w
-        self.settings[window]["h"] = h
+        self.currentSettings[window]["x"] = x
+        self.currentSettings[window]["y"] = y
+        self.currentSettings[window]["w"] = w
+        self.currentSettings[window]["h"] = h
 
         self.writeSettings()
 
@@ -82,23 +110,23 @@ class Settings:
         #path should be a pathlib.Path object, not a string.
         file = "#!"+file
 
-        self.settings[file] = str(path.as_posix())
+        self.currentSettings[file] = str(path.as_posix())
 
     def listSettings(self):
-        return unwrap(self.settings)
+        return unwrap(self.currentSettings)
     
     def getWindowSettings(self, window):
         window = "#"+window
-        if window in self.settings:
-            return self.settings[window]
+        if window in self.currentSettings:
+            return self.currentSettings[window]
         else:
             return {"x":200,"y":200,"w":400,"h":600}
 
     def getFileSettings(self, file):
         #returns a string pathname that should be fed to a pathlib.Path object
         file = "#!"+file
-        if file in self.settings:
-            return self.settings[file]
+        if file in self.currentSettings:
+            return self.currentSettings[file]
         else:
             return '.'
 
