@@ -44,6 +44,9 @@ class UserInterface(Frame):
         self.updateButton = Button(self.canvas, text="update", command=self.updateStash, anchor=N)
         self.updateButton.place(x=self.winfo_screenwidth()/2 - 30, y=25)
 
+        self.chaosHUD = None
+        self.initChaosHUD()
+
         self.reopenLogfile()
         self.redraw()
 
@@ -83,7 +86,7 @@ class UserInterface(Frame):
                     #moving from a non-stash zone to a safe zone, so only update the character
                     self.updateCharacter()
 
-                self.hideout = True
+                self.enterHideout()
 
             elif ": You have entered " in logLines:
                 if self.hideout:
@@ -98,7 +101,7 @@ class UserInterface(Frame):
                     if zone in logLines:
                         print(zone, level)
 
-                self.hideout = False
+                self.leaveHideout()
         
         call = lambda : self.readLogFile(since)
         self.master.after(100, call)
@@ -134,6 +137,10 @@ class UserInterface(Frame):
     
             self.inventory.parseStash(stash, tabIndex)
 
+            #Generate the string for the chaos HUD
+            HUDString = self.chaos.getChaosHUDString()
+            self.chaosHUD.updateText(HUDString)
+
     def updateCharacter(self):
         account = self.settings.currentSettings["account"]
         character = self.settings.currentSettings["character"]
@@ -164,8 +171,13 @@ class UserInterface(Frame):
         self.menu.destroy()
         self.menu = None
 
+    def initChaosHUD(self):
+        settings = self.settings.getWindowSettings("ChaosHUD")
+        self.chaosHUD = HUDOverlay(self,settings["x"],settings["y"],settings["w"],settings["h"],8, settings["colors"])
+
     def toggleChaosOverlay(self):
-        if self.chaosOverlay is None:
+
+        if self.chaosOverlay is None and self.hideout:
             settings = self.settings.getWindowSettings("Chaos")
             self.chaosOverlay = InventoryOverlay(self,settings["x"],settings["y"],settings["w"],settings["h"],settings["cellGap"],settings["border"],settings["tabType"])
             
@@ -182,7 +194,7 @@ class UserInterface(Frame):
             self.chaosOverlay.destroy()
             self.chaosOverlay = None
 
-        """
+        """#Possibly leave out or remove this functionality... Not 100% sure it is worth the time to finish. At this point I think other functions will be more worthwhile
         if self.mainOverlay is None:
             settings = self.settings.getWindowSettings("Main")
             self.mainOverlay = Overlay(self,settings["x"],settings["y"],settings["w"],settings["h"],settings["cellGap"],settings["border"],settings["tabType"])
@@ -201,6 +213,11 @@ class UserInterface(Frame):
             self.vendorOverlay.destroy()
             self.vendorOverlay = None
         """
+
+    def closeChaosOverlay(self):
+        self.chaosOverlay.destroy()
+        self.chaosOverlay = None
+
     def killAllThreads(self):
         if self.menu is not None:
             self.menu.destroy()
@@ -210,6 +227,14 @@ class UserInterface(Frame):
             self.mainOverlay.destroy()
         if self.vendorOverlay is not None:
             self.vendorOverlay.destroy()
+
+    def enterHideout(self):
+        self.hideout = True
+        #add code here to show/hide the stuff that you want to see while in the HO
+    
+    def leaveHideout(self):
+        self.hideout = False
+        #add code here to show/hide the stuff that you want to see while actually playing
 
 class SettingsMenu(Toplevel):
 
@@ -268,12 +293,12 @@ class SettingsMenu(Toplevel):
 
     def updateBaseFilter(self):
         initial = self.parent.settings.getFileSettings("baseFilter")
-        filePath = Path(filedialog.askopenfilename(initialdir=initial, title="Select PoE Log File", filetypes = (("Filter files", "*.filter*"), ("all files", "*.*"))))
+        filePath = Path(filedialog.askopenfilename(initialdir=initial, title="Select Base Filter", filetypes = (("Filter files", "*.filter*"), ("all files", "*.*"))))
         self.parent.settings.updateFileSettings("baseFilter", filePath)
 
     def updateActiveFilter(self):
         initial = self.parent.settings.getFileSettings("activeFilter")
-        filePath = Path(filedialog.askopenfilename(initialdir=initial, title="Select PoE Log File", filetypes = (("Filter files", "*.filter*"), ("all files", "*.*"))))
+        filePath = Path(filedialog.askopenfilename(initialdir=initial, title="Select Active Filter", filetypes = (("Filter files", "*.filter*"), ("all files", "*.*"))))
         self.parent.settings.updateFileSettings("activeFilter", filePath)
 
     def saveAndClose(self):
@@ -314,7 +339,7 @@ class InventoryOverlay:
             self.boxWidth = int((self.w - 2 * self.border - 11 * self.cellGap) / 12)
             self.boxHeight = int((self.h - 2 * self.border - 11 * self.cellGap) / 5)
 
-        self.lineCanvas = Canvas(ui.canvas, width=self.w, height=self.h, bg='white', bd=0, highlightthickness=0)
+        self.lineCanvas = Canvas(self.ui.canvas, width=self.w, height=self.h, bg='white', bd=0, highlightthickness=0)
         self.lineCanvas.place(x=self.x, y=self.y)
 
         self.clickThread.start()
@@ -344,7 +369,7 @@ class InventoryOverlay:
     def highlightItems(self, itemList):
         self.lines = {}
         for item in itemList:
-            self.addHighlight(item["y"],item["y"],item["w"],item["h"],item["color"])
+            self.addHighlight(item["x"],item["y"],item["w"],item["h"],item["color"])
 
     def addHighlight(self, x, y, w, h, color):
         
@@ -389,3 +414,29 @@ class InventoryOverlay:
         while self.clickThread.is_alive():
             time.sleep(0.1)
         self.lineCanvas.destroy()
+
+class HUDOverlay:
+    def __init__(self, ui, x, y, w, h, textCount, colors):
+        self.ui = ui
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+        self.text = []
+        self.textCount = textCount
+        self.colors = colors
+
+        self.stringCanvas = Canvas(self.ui.canvas, width=self.w, height=self.h, bg='white', bd=0, highlightthickness=0)
+        self.stringCanvas.place(x=self.x, y=self.y)
+
+        for i in range(self.textCount):
+            self.text.append(self.stringCanvas.create_text(int(i * self.w / 8),0, anchor=NW, text="", font=("Courier", 16), fill=self.colors[i]))
+
+    def updateText(self, text):
+        strings = text.split(",")
+        for i in range(self.textCount):
+            self.stringCanvas.itemconfig(self.text[i],text=strings[i])
+    
+    def destroy(self):
+        self.stringCanvas.destroy()
+            

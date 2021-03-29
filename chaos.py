@@ -64,8 +64,8 @@ class Chaos:
                                     elif item["ilvl"] > 75:
                                         highItems[slot].append(itemId)
         
-        for slot in highItems:
-            print("High Items - {}: {}".format(slot, len(highItems[slot])))
+        #for slot in highItems:
+        #    print("High Items - {}: {}".format(slot, len(highItems[slot])))
 
         if self.settings.currentSettings["chaos"]["preserve_low_level"]:
             return self.buildSetPreserve(lowItems, highItems)
@@ -151,3 +151,46 @@ class Chaos:
             itemSet.append(highItems[req].pop())
 
         return itemSet
+    
+    def getChaosHUDString(self):
+        inventoryId = "Stash" + str(1 + self.settings.currentSettings["chaos"]["index"])
+
+        lowItems = {"Weapon":[],
+                    "Body"  :[],
+                    "Helm"  :[],
+                    "Glove" :[],
+                    "Boot"  :[],
+                    "Belt"  :[],
+                    "Amulet":[],
+                    "Ring"  :[]}
+        
+        highItems = {"Weapon":[],
+                     "Body"  :[],
+                     "Helm"  :[],
+                     "Glove" :[],
+                     "Boot"  :[],
+                     "Belt"  :[],
+                     "Amulet":[],
+                     "Ring"  :[]}
+
+        for itemId, item in self.inventory.stash.items():
+
+            if item["inventoryId"] == inventoryId and item["frameType"] == 2 and len(item["sockets"]) <= 5:
+
+                #add it to the list of usable items
+                if not item["identified"]: #Can change this later to allow for the option to do unid'd chaos recipe
+                    for slot in itemClassMap:
+                        if itemSizeMap[slot]["w"] == item["w"] and itemSizeMap[slot]["h"] == item["h"]:
+                            for base in itemClassMap[slot]:
+                                if base in item["typeLine"]:
+                                    if 60 <= item["ilvl"] < 75:
+                                        lowItems[slot].append(itemId)
+                                    elif item["ilvl"] > 75:
+                                        highItems[slot].append(itemId)
+        
+        HUDString = ""
+
+        for slot in highItems:
+            HUDString += "{}:{}/{},".format(slot[:2], len(highItems[slot]), len(lowItems[slot]))
+        
+        return HUDString

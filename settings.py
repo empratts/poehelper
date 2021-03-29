@@ -70,7 +70,7 @@ class Settings:
     def writeSettings(self):
         #TODO: Add some error checking here
         f = open("settings.json", "w")
-        json.dump(self.currentSettings, f)
+        json.dump(self.currentSettings, f, indent=4)
         f.close()
 
     def modifySettings(self, newWrappedSettings):
