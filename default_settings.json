@@ -1,1 +1,79 @@
-{"league": "", "account_name": "", "character_name": "", "POESESSID": "", "resolution": {"x": 2560, "y": 1440}, "chaos": {"item_limit": {"body": 6, "weapon": 12, "glove": 6, "boot": 6, "helm": 6, "belt": 30, "amulet": 100, "ring": 256}, "preserve_low_level": false, "disable_recipe": false, "tabs": {"n": "C", "quad": true}}, "#Menu": {"x": 2914, "y": -36, "w": 414, "h": 555}, "#Chaos": {"x": 22, "y": 169, "w": 844, "h": 844, "cellGap": 2, "border": 3, "tabType": "QuadStash"}}
+{
+    "league": "Ritual",
+    "account": "",
+    "character": "",
+    "POESESSID": "",
+    "#!logFile": "",
+    "resolution": {
+        "x": 2560,
+        "y": 1440
+    },
+    "autoDump": true,
+    "chaos": {
+        "item_limit": {
+            "body": 6,
+            "weapon": 12,
+            "glove": 6,
+            "boot": 6,
+            "helm": 6,
+            "belt": 30,
+            "amulet": 100,
+            "ring": 256
+        },
+        "preserve_low_level": false,
+        "disable_recipe": false,
+        "tab": "Chaos",
+        "index": 4
+    },
+    "#Menu": {
+        "x": 804,
+        "y": 394,
+        "w": 414,
+        "h": 554
+    },
+    "#Chaos": {
+        "x": 22,
+        "y": 179,
+        "w": 844,
+        "h": 844,
+        "cellGap": 2,
+        "border": 3,
+        "tabType": "QuadStash"
+    },
+    "#ChaosHUD": {
+        "x": 800,
+        "y": 1380,
+        "w": 960,
+        "h": 200,
+        "colors": [
+            "#fcba03",
+            "#fc0303",
+            "#90fc03",
+            "#03fcce",
+            "#0345fc",
+            "#be03fc",
+            "#fc03b5",
+            "#fc03b5"
+        ]
+    },
+    "#Main": {
+        "x": 1693,
+        "y": 783,
+        "w": 844,
+        "h": 369,
+        "cellGap": 2,
+        "border": 3,
+        "tabType": "MainInventory"
+    },
+    "#Vendor": {
+        "x": 415,
+        "y": 691,
+        "w": 844,
+        "h": 369,
+        "cellGap": 2,
+        "border": 3,
+        "tabType": "Vendor"
+    },
+    "#!baseFilter": "",
+    "#!activeFilter": ""
+}

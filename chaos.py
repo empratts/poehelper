@@ -54,7 +54,7 @@ class Chaos:
             if item["inventoryId"] == inventoryId and item["frameType"] == 2 and len(item["sockets"]) <= 5:
 
                 #add it to the list of usable items
-                if not item["identified"]: #Can change this later to allow for the option to do unid'd chaos recipe
+                if not item["identified"]: #Can change this later to allow for the option to do id'd chaos recipe
                     for slot in itemClassMap:
                         if itemSizeMap[slot]["w"] == item["w"] and itemSizeMap[slot]["h"] == item["h"]:
                             for base in itemClassMap[slot]:
@@ -64,9 +64,6 @@ class Chaos:
                                     elif item["ilvl"] > 75:
                                         highItems[slot].append(itemId)
         
-        #for slot in highItems:
-        #    print("High Items - {}: {}".format(slot, len(highItems[slot])))
-
         if self.settings.currentSettings["chaos"]["preserve_low_level"]:
             return self.buildSetPreserve(lowItems, highItems)
         else:
@@ -131,7 +128,7 @@ class Chaos:
             else:
                 highMissingSearch[req] = highMissingSearch[req][:-1]
 
-        #take a low level item, either to fill the slot with no high level items, no slots are missing high lvl items, take the frist available 
+        #take a low level item, either to fill the slot with no high level items, or if no slots are missing high lvl items, take the frist available 
         if highReqMissing == "":
             #no high lvl requirements are missing, take the first low level requirement
             for slot in lowItems:

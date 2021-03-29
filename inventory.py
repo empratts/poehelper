@@ -160,8 +160,9 @@ class Inventory:
 
         #see if it will fit in the tab
         fits = False
-        for i in range(len(self.mainFill)):
-            for j in range(len(self.mainFill[i])):
+        item = None
+        for i in range(len(self.mainFill)-w):
+            for j in range(len(self.mainFill[i])-h):
                 fits = True
                 for k in range(w):
                     for l in range(h):
@@ -182,6 +183,7 @@ class Inventory:
                     self.stash.pop(ID)
                     break
             if fits:
+                print("Item moved to main Inventory" + str(item))
                 break
         return
 

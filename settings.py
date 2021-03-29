@@ -66,7 +66,6 @@ class Settings:
                 zone = line.strip("\n")
                 self.townZones.append(zone)
 
-
     def writeSettings(self):
         #TODO: Add some error checking here
         f = open("settings.json", "w")

@@ -177,7 +177,7 @@ class UserInterface(Frame):
 
     def toggleChaosOverlay(self):
 
-        if self.chaosOverlay is None and self.hideout:
+        if self.chaosOverlay is None:
             settings = self.settings.getWindowSettings("Chaos")
             self.chaosOverlay = InventoryOverlay(self,settings["x"],settings["y"],settings["w"],settings["h"],settings["cellGap"],settings["border"],settings["tabType"])
             
@@ -357,14 +357,24 @@ class InventoryOverlay:
                 if a < 0 and c < 0: 
                     #process a ctrl click at pixel x, y by translating into an x/y position in the tab and checking if it is in the cell gap
                     if x > self.x + self.border and x < self.x + self.w - self.border and y > self.y + self.border and y < self.y + self.h - self.border:
+                        #get the x,y position within the overlay
                         xNorm = x - self.x - self.border
                         yNorm = y - self.y - self.border
+
+                        #check if the click falls within a cell and not in a gap
                         if xNorm % (self.boxWidth + self.cellGap) < self.w and yNorm % (self.boxHeight + self.cellGap) < self.h:
                             xCell = xNorm // (self.boxWidth + self.cellGap)
                             yCell = yNorm // (self.boxHeight + self.cellGap)
 
+                            #remove the highlight from the clicked item
                             self.removeHighlight(xCell, yCell)
-                            #TODO:***THIS IS WHERE YOU PUT THE CODE FOR CHANGING ITEMS IN THE INVENTORY MODULE***
+
+                            #pass the click off to the inventory module for processing. Let inventory worry about if there is actually an item there or not
+                            if self.tabType == "QuadStash" or self.tabType == "PremiumStash" or self.tabType == "NormalStash":
+                                tab = self.ui.settings.currentSettings["chaos"]["index"]
+                                self.ui.inventory.clickFromStash(tab, xCell, yCell)
+                            
+                            #TODO:Add functionality for other tab types
 
     def highlightItems(self, itemList):
         self.lines = {}
