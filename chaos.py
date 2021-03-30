@@ -24,14 +24,14 @@ requirements = [ "Weapon", "Weapon", "Body", "Helm", "Glove", "Boot", "Belt", "A
 
 class Chaos:
 
-    def __init__(self, settings, inventory, logReader):
+    def __init__(self, settings, inventory, log):
         self.settings = settings
         self.inventory = inventory
-        self.logReader = logReader
+        self.log = log
 
         self.hideout = False
 
-        self.logReader.registerCallback(self.logCallback, ": You have entered")
+        self.log.registerCallback(self.logCallback, ": You have entered")
 
     def logCallback(self, logLines):
         
