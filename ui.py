@@ -11,12 +11,12 @@ from pathlib import Path
 
 class UserInterface(Frame):
 
-    def __init__(self, master, settings, inventory, api, chaos):
+    def __init__(self, master, settings, inventory, api, chaos, log):
         super().__init__(master=master)
 
-        self.initUI(settings, inventory, api, chaos)
+        self.initUI(settings, inventory, api, chaos, log)
 
-    def initUI(self, settings, inventory, api, chaos):
+    def initUI(self, settings, inventory, api, chaos, log):
 
         self.master.title("Overlay Frame")
         self.pack(fill=BOTH, expand=1)
@@ -28,6 +28,7 @@ class UserInterface(Frame):
         self.inventory = inventory
         self.api = api
         self.chaos = chaos
+        self.log = log
         self.hideout = False
 
         self.canvas = Canvas(self, bd=-2)
@@ -199,7 +200,7 @@ class SettingsMenu(Toplevel):
 
         self.parent.settings.modifySettings(settings)
 
-        self.parent.reopenLogfile()
+        self.parent.log.reopenLogfile()
 
         self.parent.closeOptionsMenu()
 

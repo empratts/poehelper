@@ -32,10 +32,10 @@ def main():
 
     log.reopenLogfile()
 
-    inv = Inventory(settings, api, log)
-    chaos = Chaos(settings, inv)
+    inv = Inventory(settings, api)
+    chaos = Chaos(settings, inv, log)
 
-    ui = UserInterface(root, settings, inv, api, chaos)
+    ui = UserInterface(root, settings, inv, api, chaos, log)
 
     Button(root, text="Quit", command = gracefulExit, anchor=N).place(x=root.winfo_screenwidth()/2, y=root.winfo_screenheight()-30)
 

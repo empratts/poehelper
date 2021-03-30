@@ -24,9 +24,33 @@ requirements = [ "Weapon", "Weapon", "Body", "Helm", "Glove", "Boot", "Belt", "A
 
 class Chaos:
 
-    def __init__(self, settings, inventory):
+    def __init__(self, settings, inventory, logReader):
         self.settings = settings
         self.inventory = inventory
+        self.logReader = logReader
+
+        self.hideout = False
+
+        self.logReader.registerCallback(self.logCallback, ": You have entered")
+
+    def logCallback(self, logLines):
+        
+        if self.hideout:
+            #moving from a zone with a stash, update the stash
+            self.inventory.updateStash("Chaos")
+        
+        #note, this will probably act up when encountering HO/s in the wild that need to be cleared. This should be rare enough that the extra
+        #API calls wont pose a problem
+        if "Hideout." in logLines: #add more here for all towns. Also figure out what the game logs going in and out of the azurite mine
+            self.enterHideout()
+        else:
+            self.leaveHideout()
+
+    def enterHideout(self):
+        self.hideout = True
+    
+    def leaveHideout(self):
+        self.hideout = False
 
     def getChaosSet(self):
         inventoryId = "Stash" + str(1 + self.settings.currentSettings["Chaos"]["index"])
@@ -92,13 +116,13 @@ class Chaos:
             for req in highReqMissing:
                 if lowItems[req] == []:
                     return []
-                print("Adding low item for missing slot {}".format(req))
+                #print("Adding low item for missing slot {}".format(req))
                 itemSet.append(lowItems[req].pop())
                 requirementCounter.remove(req)
         else:
             for slot in lowItems:
                 if lowItems[slot] != []:
-                    print("Adding low item for non-missing slot {}".format(req))
+                    #print("Adding low item for non-missing slot {}".format(req))
                     itemSet.append(lowItems[slot].pop())
                     requirementCounter.remove(slot)
                     break
@@ -107,7 +131,7 @@ class Chaos:
         
         #fill all remaining slots with high level items
         for req in requirementCounter:
-            print("Adding high item for slot {}".format(req))
+            #print("Adding high item for slot {}".format(req))
             itemSet.append(highItems[req].pop())
 
         return itemSet

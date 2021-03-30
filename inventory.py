@@ -11,10 +11,9 @@ itemProperties = {"x":-5,"y":-5,"w":1,"h":1,"identified":True,"sockets":[],"type
 
 class Inventory:
 
-    def __init__(self, settings, api, logReader):
+    def __init__(self, settings, api):
         self.settings = settings
         self.api = api
-        self.logReader = logReader
 
         self.stash = {}
         self.stashFill = {}
@@ -29,46 +28,14 @@ class Inventory:
         self.worn = {}
         self.vendor = {}
 
-        self.hideout = False
+    def updateStash(self, tabName):
+        stash = self.api.updateStashTab(tabName)
+        tabIndex = self.settings.currentSettings[tabName]["index"]
+        self.parseStash(stash, tabIndex)
 
-        self.logReader.registerCallback(self.logCallback, ": You have entered ")
-
-    #this still needs to be updated. The inventory module should have other modules tell it when to update specific tabs.
-    #Inventory should be generic and should not reference any other spcific module's settings
-    def logCallback(self, logLines):
-        if ": You have entered " in logLines and "Hideout." in logLines: #add more here for all towns. Also figure out what the game logs going in and out of the azurite mine
-            if self.hideout:
-                #moving from one safe zone to another, inspect both stash and character
-                stash = self.api.updateStashTab("Chaos")
-                tabIndex = self.settings.currentSettings["Chaos"]["index"]
-                self.parseStash(stash, tabIndex)
-                char = self.api.updateCharacter()
-                self.parseCharacter(char)
-            else:
-                #moving from a non-stash zone to a safe zone, so only update the character
-                char = self.api.updateCharacter()
-                self.parseCharacter(char)
-
-            self.enterHideout()
-
-        elif ": You have entered " in logLines:
-            if self.hideout:
-                #Leaving a safe zone, inspect the stash and character
-                stash = self.api.updateStashTab("Chaos")
-                tabIndex = self.settings.currentSettings["Chaos"]["index"]
-                self.parseStash(stash, tabIndex)
-                char = self.api.updateCharacter()
-                self.parseCharacter(char)
-            else:
-                #moving from a non-stash zone to another, only update the character
-                char = self.api.updateCharacter()
-                self.parseCharacter(char)
-
-            for zone, level in self.settings.combatZones.items():
-                if zone in logLines:
-                    print(zone, level)
-
-            self.leaveHideout()
+    def updateCharacter(self):
+        character = self.api.updateCharacter()
+        self.parseCharacter(character)
 
     def parseStash(self, response, tabIndex):
         responseItems = response["items"]
@@ -228,7 +195,7 @@ class Inventory:
                     self.stash.pop(ID)
                     break
             if fits:
-                print("Item moved to main Inventory" + str(item))
+                #print("Item moved to main Inventory" + str(item))
                 break
         return
 

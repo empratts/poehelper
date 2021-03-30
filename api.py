@@ -172,7 +172,7 @@ class RateLimiter:
                 if condition["state"] >= condition["limit"] - 1:
                     return False
 
-        print(self.policies)
+        #print("Checking rate limit for {} - {}".format(endpoint, self.policies))
 
         return True
 
@@ -210,7 +210,7 @@ class RateLimiter:
                     self.policyMaxAges[policy] = age
         
         self.logRequest(policy)
-        print(self.policies)
+        #print("Processing Response for {} - {}".format(endpoint, self.policies))
 
             
     def updateWindows(self):

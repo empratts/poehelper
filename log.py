@@ -25,10 +25,8 @@ class ReadLogFile:
     #registers a callback function that will be called when pattern is matched in the logfile
     #function must accept a single argument (the string representation of the log line)
     def registerCallback(self, function, pattern):
-        print("registering callback: " + pattern)
         self.callbacks[function] = pattern
 
-    
     def readLogFile(self, since):
 
         if since != self.currentLog:
@@ -50,12 +48,16 @@ class ReadLogFile:
                 print("Error opening log file", type(err), err)
                 return
         
-        logLines = self.logFile.readline()
+        while True:
+            logLines = self.logFile.readline()
 
-        for function, pattern in self.callbacks.items():
-            match = re.search(pattern, logLines)
-            if match is not None:
-                function(logLines)
-        
+            if logLines == "":
+                break
+
+            for function, pattern in self.callbacks.items():
+                match = re.search(pattern, logLines)
+                if match is not None:
+                    function(logLines)
+
         call = lambda : self.readLogFile(since)
         self.master.after(100, call)
