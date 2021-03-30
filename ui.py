@@ -7,6 +7,7 @@ import time
 from datetime import datetime
 import win32api, win32gui, win32con
 from pathlib import Path
+from log import ReadLogFile
 
 class UserInterface(Frame):
 
@@ -48,11 +49,28 @@ class UserInterface(Frame):
         self.initChaosHUD()
 
         self.reopenLogfile()
+
+        self.testReader = ReadLogFile(settings, self.master)
+        self.testReader.registerCallback(self.callbackTest, ": You have entered ")
+        self.testReader.reopenLogfile()
+
         self.redraw()
 
     def redraw(self):
         return
 
+    def callbackTest(self, text):
+        print("SUCCESS: " + text)
+
+    #Proposed redsign of this whole process: readLogFile allows other modules to register other function/regex pairs
+    #It just compares each logline to each regex and then if it matches, it passes the line to the associated function
+    #This will simplify this module and allow the moving of the update stash and update chararacter functions to a more
+    #appropriate place. Not currently sure where they belong, but it feels wrong having them in the UI module.
+    #Possible locations include Inventory and Character modules. Inventory feels right ATM, as the update functions update the inventories
+    #directly, and char/chaos can just pull from the Inventory to do thier analysis.
+    #Also, the pulling of settings to pass to the API probably belongs in the API module...
+    #actually, the whole thing is F'd... The triggers should be in the inventory module, and the bulk of the logic currently in the update functions
+    #should be in the API module. Also, reading the log might belong in its own module
     def readLogFile(self, since):
 
         if since != self.currentLog:
