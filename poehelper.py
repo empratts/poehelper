@@ -3,6 +3,7 @@ from settings import Settings
 from api import API
 from ui import UserInterface
 from chaos import Chaos
+from log import ReadLogFile
 from inventory import Inventory
 from tkinter import Tk, N, Button
 import requests
@@ -13,8 +14,8 @@ def main():
         ui.killAllThreads()
         root.destroy()
     
-    stgs = Settings()
-    stgs.writeSettings()
+    settings = Settings()
+    settings.writeSettings()
 
     root = Tk()
 
@@ -25,11 +26,16 @@ def main():
     root.wm_attributes("-transparentcolor", "white")
     root.config(bg='white')
 
-    inv = Inventory()
-    api = API()
-    chaos = Chaos(stgs, inv)
+    
+    api = API(settings)
+    log = ReadLogFile(root, settings)
 
-    ui = UserInterface(root, stgs, inv, api, chaos)
+    log.reopenLogfile()
+
+    inv = Inventory(settings, api, log)
+    chaos = Chaos(settings, inv)
+
+    ui = UserInterface(root, settings, inv, api, chaos)
 
     Button(root, text="Quit", command = gracefulExit, anchor=N).place(x=root.winfo_screenwidth()/2, y=root.winfo_screenheight()-30)
 

@@ -11,7 +11,11 @@ itemProperties = {"x":-5,"y":-5,"w":1,"h":1,"identified":True,"sockets":[],"type
 
 class Inventory:
 
-    def __init__(self):
+    def __init__(self, settings, api, logReader):
+        self.settings = settings
+        self.api = api
+        self.logReader = logReader
+
         self.stash = {}
         self.stashFill = {}
         self.main = {}
@@ -25,46 +29,87 @@ class Inventory:
         self.worn = {}
         self.vendor = {}
 
-    def parseStash(self, response, tab):
+        self.hideout = False
+
+        self.logReader.registerCallback(self.logCallback, ": You have entered ")
+
+    #this still needs to be updated. The inventory module should have other modules tell it when to update specific tabs.
+    #Inventory should be generic and should not reference any other spcific module's settings
+    def logCallback(self, logLines):
+        if ": You have entered " in logLines and "Hideout." in logLines: #add more here for all towns. Also figure out what the game logs going in and out of the azurite mine
+            if self.hideout:
+                #moving from one safe zone to another, inspect both stash and character
+                stash = self.api.updateStashTab("Chaos")
+                tabIndex = self.settings.currentSettings["Chaos"]["index"]
+                self.parseStash(stash, tabIndex)
+                char = self.api.updateCharacter()
+                self.parseCharacter(char)
+            else:
+                #moving from a non-stash zone to a safe zone, so only update the character
+                char = self.api.updateCharacter()
+                self.parseCharacter(char)
+
+            self.enterHideout()
+
+        elif ": You have entered " in logLines:
+            if self.hideout:
+                #Leaving a safe zone, inspect the stash and character
+                stash = self.api.updateStashTab("Chaos")
+                tabIndex = self.settings.currentSettings["Chaos"]["index"]
+                self.parseStash(stash, tabIndex)
+                char = self.api.updateCharacter()
+                self.parseCharacter(char)
+            else:
+                #moving from a non-stash zone to another, only update the character
+                char = self.api.updateCharacter()
+                self.parseCharacter(char)
+
+            for zone, level in self.settings.combatZones.items():
+                if zone in logLines:
+                    print(zone, level)
+
+            self.leaveHideout()
+
+    def parseStash(self, response, tabIndex):
         responseItems = response["items"]
 
         for description in response["tabs"]:
-            if description["i"] == tab:
+            if description["i"] == tabIndex:
                 tabType = description["type"]
 
         if tabType == "QuadStash" or tabType == "PremiumStash" or tabType == "NormalStash":
-            self.stashFill[tab] = []
+            self.stashFill[tabIndex] = []
             if tabType == "QuadStash":
                 for x in range(24):
-                    self.stashFill[tab].append([])
+                    self.stashFill[tabIndex].append([])
                     for _ in range(24):
-                        self.stashFill[tab][x].append("")
+                        self.stashFill[tabIndex][x].append("")
             else:
                 for x in range(12):
-                    self.stashFill[tab].append([])
+                    self.stashFill[tabIndex].append([])
                     for _ in range(12):
-                        self.stashFill[tab][x].append("")
+                        self.stashFill[tabIndex][x].append("")
 
-        self.purgeStash(tab)
+        self.purgeStash(tabIndex)
 
         for responseItem in responseItems:
             
             stashItem = parseItem(responseItem)
             self.stash[stashItem["id"]] = stashItem["properties"]
 
-            if tab in self.stashFill:
+            if tabIndex in self.stashFill:
                 x = stashItem["properties"]["x"]
                 y = stashItem["properties"]["y"]
                 w = stashItem["properties"]["w"]
                 h = stashItem["properties"]["h"]
                 for w in range(stashItem["properties"]["w"]):
                     for h in range(stashItem["properties"]["h"]):
-                        self.stashFill[tab][x+w][y+h] = stashItem["id"]
+                        self.stashFill[tabIndex][x+w][y+h] = stashItem["id"]
 
         return
 
-    def purgeStash(self, tab):
-        inventoryId = "Stash" + str(tab + 1)
+    def purgeStash(self, tabIndex):
+        inventoryId = "Stash" + str(tabIndex + 1)
 
         staleItems = []
 
@@ -198,6 +243,12 @@ class Inventory:
     def confirmVendor(self):
         #confirms sale of the items in the vendor window
         return
+
+    def enterHideout(self):
+        self.hideout = True
+    
+    def leaveHideout(self):
+        self.hideout = False
 
 def parseItem(responseItem):
     item = {}

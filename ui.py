@@ -7,7 +7,7 @@ import time
 from datetime import datetime
 import win32api, win32gui, win32con
 from pathlib import Path
-from log import ReadLogFile
+#from log import ReadLogFile
 
 class UserInterface(Frame):
 
@@ -28,8 +28,6 @@ class UserInterface(Frame):
         self.inventory = inventory
         self.api = api
         self.chaos = chaos
-        self.logFile = None
-        self.currentLog = None #timestamp of when log was opened to make sure only 1 thread is trying to read the log at a time.
         self.hideout = False
 
         self.canvas = Canvas(self, bd=-2)
@@ -42,141 +40,16 @@ class UserInterface(Frame):
         self.chaosButton = Button(self.canvas, text="Chaos", command=self.toggleChaosOverlay, anchor=N)
         self.chaosButton.place(x=self.winfo_screenwidth()/2 - 30, y=0)
 
-        self.updateButton = Button(self.canvas, text="update", command=self.updateStash, anchor=N)
-        self.updateButton.place(x=self.winfo_screenwidth()/2 - 30, y=25)
+        #self.updateButton = Button(self.canvas, text="update", command=self.updateStash, anchor=N)
+        #self.updateButton.place(x=self.winfo_screenwidth()/2 - 30, y=25)
 
         self.chaosHUD = None
         self.initChaosHUD()
-
-        self.reopenLogfile()
-
-        self.testReader = ReadLogFile(settings, self.master)
-        self.testReader.registerCallback(self.callbackTest, ": You have entered ")
-        self.testReader.reopenLogfile()
 
         self.redraw()
 
     def redraw(self):
         return
-
-    def callbackTest(self, text):
-        print("SUCCESS: " + text)
-
-    #Proposed redsign of this whole process: readLogFile allows other modules to register other function/regex pairs
-    #It just compares each logline to each regex and then if it matches, it passes the line to the associated function
-    #This will simplify this module and allow the moving of the update stash and update chararacter functions to a more
-    #appropriate place. Not currently sure where they belong, but it feels wrong having them in the UI module.
-    #Possible locations include Inventory and Character modules. Inventory feels right ATM, as the update functions update the inventories
-    #directly, and char/chaos can just pull from the Inventory to do thier analysis.
-    #Also, the pulling of settings to pass to the API probably belongs in the API module...
-    #actually, the whole thing is F'd... The triggers should be in the inventory module, and the bulk of the logic currently in the update functions
-    #should be in the API module. Also, reading the log might belong in its own module
-    def readLogFile(self, since):
-
-        if since != self.currentLog:
-            return
-
-        if self.logFile is None:
-            try:
-                logPath = Path(self.settings.getFileSettings("logFile"))
-                if logPath.suffix == ".txt" and logPath.exists():
-                    self.logFile = open(logPath, "r", errors='ignore')
-                    self.logFile.seek(0,2)
-                else:
-                    print("Invalid Logfile - incorrect file type or file does not exist")
-                    return
-            except IndexError:
-                print("Invalid Logfile Name")
-                return
-            except Exception as err:
-                print("Error opening log file", type(err), err)
-                return
-        
-        logLines = self.logFile.readline()
-        if len(logLines) > 0:
-            if ": You have entered " in logLines and "Hideout." in logLines: #add more here for all towns. Also figure out what the game logs going in and out of the azurite mine
-                if self.hideout:
-                    #moving from one safe zone to another, inspect both stash and character
-                    print("SUCCESS")
-                    self.updateStash()
-                    self.updateCharacter()
-                else:
-                    #moving from a non-stash zone to a safe zone, so only update the character
-                    self.updateCharacter()
-
-                self.enterHideout()
-
-            elif ": You have entered " in logLines:
-                if self.hideout:
-                    #Leaving a safe zone, inspect the stash and character
-                    self.updateStash()
-                    self.updateCharacter()
-                else:
-                    #moving from a non-stash zone to another, only update the character
-                    self.updateCharacter()
-
-                for zone, level in self.settings.combatZones.items():
-                    if zone in logLines:
-                        print(zone, level)
-
-                self.leaveHideout()
-        
-        call = lambda : self.readLogFile(since)
-        self.master.after(100, call)
-
-    def updateStash(self):
-        #look for the chaos tab in the last place it was found
-        league = self.settings.currentSettings["league"]
-        tabIndex = self.settings.currentSettings["chaos"]["index"]
-        account = self.settings.currentSettings["account"]
-        POESESSID = self.settings.currentSettings["POESESSID"]
-
-        tabName = self.settings.currentSettings["chaos"]["tab"]
-
-        stash = self.api.updateStashTab(league, tabIndex, account, POESESSID)
-
-        if stash != {}:
-            for tab in stash["tabs"]:
-                if tab["n"] == tabName:
-                    if tab["i"] != tabIndex:
-                        #the tab has moved in the stash. Update its index in the settings and request it at its new location.
-                        tabIndex = tab["i"]
-                        self.settings.updateWrappedSetting("chaos:index", tab["i"])
-                        stash = self.api.updateStashTab(league, tab["i"], account, POESESSID)
-                    break
-        
-        if stash != {}:
-            chaosWindowSettings = self.settings.getWindowSettings("Chaos")
-            for tab in stash["tabs"]:
-                if tab["n"] == tabName and tab["i"] == tabIndex and tab["type"] != chaosWindowSettings["tabType"]:
-                    self.settings.updateWrappedSetting("#Chaos:tabType", tab["type"])
-                    self.settings.writeSettings()
-                    break
-    
-            self.inventory.parseStash(stash, tabIndex)
-
-            #Generate the string for the chaos HUD
-            HUDString = self.chaos.getChaosHUDString()
-            self.chaosHUD.updateText(HUDString)
-
-    def updateCharacter(self):
-        account = self.settings.currentSettings["account"]
-        character = self.settings.currentSettings["character"]
-        POESESSID = self.settings.currentSettings["POESESSID"]
-
-        char = self.api.updateCharacter(account, character, POESESSID)
-
-        if char != {}:
-            self.inventory.parseCharacter(char)
-
-    def reopenLogfile(self):
-        if self.logFile is not None:
-            self.logFile.close()
-            self.logFile = None
-
-        now = datetime.now()
-        self.currentLog = now
-        self.readLogFile(now)
 
     def optionsMenu(self):
         if self.menu is None:
@@ -389,7 +262,7 @@ class InventoryOverlay:
 
                             #pass the click off to the inventory module for processing. Let inventory worry about if there is actually an item there or not
                             if self.tabType == "QuadStash" or self.tabType == "PremiumStash" or self.tabType == "NormalStash":
-                                tab = self.ui.settings.currentSettings["chaos"]["index"]
+                                tab = self.ui.settings.currentSettings["Chaos"]["index"]
                                 self.ui.inventory.clickFromStash(tab, xCell, yCell)
                             
                             #TODO:Add functionality for other tab types
@@ -424,7 +297,7 @@ class InventoryOverlay:
         self.lines[itemKey] = itemLines
 
     def removeHighlight(self, x, y):
-        chaosIndex = self.ui.settings.currentSettings["chaos"]["index"]
+        chaosIndex = self.ui.settings.currentSettings["Chaos"]["index"]
         itemId = self.ui.inventory.stashFill[chaosIndex][x][y]
         
         if itemId != "":

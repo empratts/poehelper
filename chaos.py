@@ -29,7 +29,7 @@ class Chaos:
         self.inventory = inventory
 
     def getChaosSet(self):
-        inventoryId = "Stash" + str(1 + self.settings.currentSettings["chaos"]["index"])
+        inventoryId = "Stash" + str(1 + self.settings.currentSettings["Chaos"]["index"])
 
         lowItems = {"Weapon":[],
                     "Body"  :[],
@@ -64,7 +64,7 @@ class Chaos:
                                     elif item["ilvl"] > 75:
                                         highItems[slot].append(itemId)
         
-        if self.settings.currentSettings["chaos"]["preserve_low_level"]:
+        if self.settings.currentSettings["Chaos"]["preserve_low_level"]:
             return self.buildSetPreserve(lowItems, highItems)
         else:
             return self.buildSet(lowItems, highItems)
@@ -150,7 +150,7 @@ class Chaos:
         return itemSet
     
     def getChaosHUDString(self):
-        inventoryId = "Stash" + str(1 + self.settings.currentSettings["chaos"]["index"])
+        inventoryId = "Stash" + str(1 + self.settings.currentSettings["Chaos"]["index"])
 
         lowItems = {"Weapon":[],
                     "Body"  :[],

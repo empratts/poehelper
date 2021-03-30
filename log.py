@@ -5,7 +5,7 @@ import re
 
 class ReadLogFile:
 
-    def __init__(self, settings, master):
+    def __init__(self, master, settings):
         self.settings = settings
         self.master = master
         self.since = None
@@ -25,6 +25,7 @@ class ReadLogFile:
     #registers a callback function that will be called when pattern is matched in the logfile
     #function must accept a single argument (the string representation of the log line)
     def registerCallback(self, function, pattern):
+        print("registering callback: " + pattern)
         self.callbacks[function] = pattern
 
     

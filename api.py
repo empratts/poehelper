@@ -15,15 +15,23 @@ headers = {
 
 class API:
 
-    def __init__(self):
+    def __init__(self, settings):
+        self.settings = settings
         self.stashTabURL = 'https://www.pathofexile.com/character-window/get-stash-items?league={}&tabs=1&tabIndex={}&accountName={}'
         self.stashTabAPI = 'https://www.pathofexile.com/character-window/get-stash-items'
         self.characterURL = 'https://www.pathofexile.com/character-window/get-items'
         self.characterAPI = 'https://www.pathofexile.com/character-window/get-items'
         self.rateLimit = RateLimiter()
 
-    def updateStashTab(self, league, tabIndex, account, POESESSID):
-        tab = {}
+    def updateStashTab(self, tabName):
+        
+        league = self.settings.currentSettings["league"]
+        tabIndex = self.settings.currentSettings[tabName]["index"]
+        account = self.settings.currentSettings["account"]
+        POESESSID = self.settings.currentSettings["POESESSID"]
+        tabName = self.settings.currentSettings[tabName]["tab"]
+
+        stash = {}
 
         if self.rateLimit.checkRateLimit(self.stashTabAPI):
             cookies = {'POESESSID':POESESSID}
@@ -33,15 +41,49 @@ class API:
 
             if response.status_code != 200:
                 print("HTTP Error: " + str(response.status_code))
+                return None
             else:
-                tab = response.json()
+                stash = response.json()
 
             self.rateLimit.processResponse(self.stashTabAPI, response.headers) #are these headers valid in non-200 status cases?
         #add code here to return a cached response if the rate limit is reached
-        return tab
+        if stash != {}:
+            for tab in stash["tabs"]:
+                if tab["n"] == tabName:
+                    if tab["i"] != tabIndex:
+                        #the tab has moved in the stash. Update its index in the settings and request it at its new location.
+                        tabIndex = tab["i"]
+                        self.settings.updateWrappedSetting(tabName + ":index", tab["i"])
+                        #Try to fetch the stash again at its new index
+                        if self.rateLimit.checkRateLimit(self.stashTabAPI):
+                            url = self.stashTabURL.format(league, tab["i"], account)
+                            response = requests.get(url,headers=headers,cookies=cookies)
+                            print("GET: {}".format(url))
+
+                            if response.status_code != 200:
+                                print("HTTP Error: " + str(response.status_code))
+                                return None
+                            else:
+                                stash = response.json()
+
+                            self.rateLimit.processResponse(self.stashTabAPI, response.headers) #are these headers valid in non-200 status cases?
+                    break
+        
+        if stash != {}:
+            windowSettings = self.settings.getWindowSettings(tabName)
+            for tab in stash["tabs"]:
+                if tab["n"] == tabName and tab["i"] == tabIndex and tab["type"] != windowSettings["tabType"]:
+                    self.settings.updateWrappedSetting("#"+tabName+":tabType", tab["type"])
+                    self.settings.writeSettings()
+                    break
+        return stash
        
-    def updateCharacter(self, account, character, POESESSID):
-        tab = {}
+    def updateCharacter(self):
+        account = self.settings.currentSettings["account"]
+        character = self.settings.currentSettings["character"]
+        POESESSID = self.settings.currentSettings["POESESSID"]
+
+        char = {}
 
         if self.rateLimit.checkRateLimit(self.characterAPI):
             cookies = {'POESESSID':POESESSID}
@@ -53,12 +95,13 @@ class API:
 
             if response.status_code != 200:
                 print("HTTP Error: " + str(response.status_code))
+                return None
             else:
-                tab = response.json()
+                char = response.json()
 
             self.rateLimit.processResponse(self.characterAPI, response.headers) #are these headers valid in non-200 status cases?
 
-        return tab
+        return char
     
     def tradeSearch(self, parameters):
 
