@@ -22,12 +22,33 @@ itemSizeMap = { "Weapon":{"w":1, "h":3},
 
 requirements = [ "Weapon", "Weapon", "Body", "Helm", "Glove", "Boot", "Belt", "Amulet", "Ring", "Ring"]
 
+chaosFilterTextShow = {"Weapon": "Show\n\tIdentified False\n\tRarity Rare\n\tItemLevel >= 60\n\tItemLevel <= 90\n\tClass \"Wands\" \"Daggers\" \"Sceptres\" \"One Hand Swords\" \"One Hand Maces\"\n\tHeight = 3\n\tWidth = 1\n\tSetBorderColor 0 0 0\n\tSetTextColor 0 0 0 255\n\tSetBackgroundColor 252 186 3   255\n\tSetFontSize 38\n\tPlayAlertSound 2 300\n\tPlayEffect White\n\tMinimapIcon 2 White Circle\n\n",
+                       "Body"  : "Show\n\tIdentified False\n\tRarity Rare\n\tItemLevel >= 60\n\tItemLevel <= 90\n\tClass \"Body Armours\"\n\tSetBorderColor 0 0 0\n\tSetTextColor 0 0 0 255\n\tSetBackgroundColor 252 3 3 255\n\tSetFontSize 38\n\tPlayAlertSound 2 300\n\tPlayEffect White\n\tMinimapIcon 2 White Circle\n\n",
+                       "Helm"  : "Show\n\tIdentified False\n\tRarity Rare\n\tItemLevel >= 60\n\tItemLevel <= 90\n\tClass \"Helmets\"\n\tSetBorderColor 0 0 0\n\tSetTextColor 0 0 0 255\n\tSetBackgroundColor 144 252 3 255\n\tSetFontSize 38\n\tPlayAlertSound 2 300\n\tPlayEffect White\n\tMinimapIcon 2 White Circle\n\n",
+                       "Glove" : "Show\n\tIdentified False\n\tRarity Rare\n\tItemLevel >= 60\n\tItemLevel <= 90\n\tClass \"Gloves\"\n\tSetBorderColor 0 0 0\n\tSetTextColor 0 0 0 255\n\tSetBackgroundColor 3 252 206 255\n\tSetFontSize 38\n\tPlayAlertSound 2 300\n\tPlayEffect White\n\tMinimapIcon 2 White Circle\n\n",
+                       "Boot"  : "Show\n\tIdentified False\n\tRarity Rare\n\tItemLevel >= 60\n\tItemLevel <= 90\n\tClass \"Boots\"\n\tSetBorderColor 0 0 0\n\tSetTextColor 0 0 0 255\n\tSetBackgroundColor 3 69 252 255\n\tSetFontSize 38\n\tPlayAlertSound 2 300\n\tPlayEffect White\n\tMinimapIcon 2 White Circle\n\n",
+                       "Belt"  : "Show\n\tIdentified False\n\tRarity Rare\n\tItemLevel >= 60\n\tItemLevel <= 90\n\tClass \"Belts\"\n\tSetBorderColor 0 0 0\n\tSetTextColor 0 0 0 255\n\tSetBackgroundColor 190 3 252 255\n\tSetFontSize 38\n\tPlayAlertSound 2 300\n\tPlayEffect White\n\tMinimapIcon 2 White Circle\n\n",
+                       "Amulet": "Show\n\tIdentified False\n\tRarity Rare\n\tItemLevel >= 60\n\tItemLevel <= 90\n\tClass \"Amulets\"\n\tSetBorderColor 0 0 0\n\tSetTextColor 0 0 0 255\n\tSetBackgroundColor 252 3 181 255\n\tSetFontSize 38\n\tPlayAlertSound 2 300\n\tPlayEffect White\n\tMinimapIcon 2 White Circle\n\n",
+                       "Ring"  : "Show\n\tIdentified False\n\tRarity Rare\n\tItemLevel >= 60\n\tItemLevel <= 90\n\tClass \"Rings\"\n\tSetBorderColor 0 0 0\n\tSetTextColor 0 0 0 255\n\tSetBackgroundColor 252 3 181 255\n\tSetFontSize 38\n\tPlayAlertSound 2 300\n\tPlayEffect White\n\tMinimapIcon 2 White Circle\n\n"}
+    
+chaosFilterTextHide = ["Hide\nIdentified False\nRarity Rare\nItemLevel >= 60\nItemLevel <= 90\nClass \"Wands\" \"Daggers\" \"Sceptres\" \"One Hand Swords\" \"One Hand Maces\"\nHeight = 3\nWidth = 1\nSetBorderColor 0 0 0\nSetTextColor 0 0 0 255\nSetBackgroundColor 252 186 3   255\nSetFontSize 20\n\n",
+                        "Hide\nIdentified False\nRarity Rare\nItemLevel >= 60\nItemLevel <= 90\nClass \"Body Armours\"\nSetBorderColor 0 0 0\nSetTextColor 0 0 0 255\nSetBackgroundColor 252 3 3 255\nSetFontSize 20\n\n",
+                        "Hide\nIdentified False\nRarity Rare\nItemLevel >= 60\nItemLevel <= 90\nClass \"Helmets\"\nSetBorderColor 0 0 0\nSetTextColor 0 0 0 255\nSetBackgroundColor 144 252 3 255\nSetFontSize 20\n\n",
+                        "Hide\nIdentified False\nRarity Rare\nItemLevel >= 60\nItemLevel <= 90\nClass \"Gloves\"\nSetBorderColor 0 0 0\nSetTextColor 0 0 0 255\nSetBackgroundColor 3 252 206 255\nSetFontSize 20\n\n",
+                        "Hide\nIdentified False\nRarity Rare\nItemLevel >= 60\nItemLevel <= 90\nClass \"Boots\"\nSetBorderColor 0 0 0\nSetTextColor 0 0 0 255\nSetBackgroundColor 3 69 252 255\nSetFontSize 20\n\n",
+                        "Hide\nIdentified False\nRarity Rare\nItemLevel >= 60\nItemLevel <= 90\nClass \"Belts\"\nSetBorderColor 0 0 0\nSetTextColor 0 0 0 255\nSetBackgroundColor 190 3 252 255\nSetFontSize 20\n\n",
+                        "Hide\nIdentified False\nRarity Rare\nItemLevel >= 60\nItemLevel <= 90\nClass \"Amulets\"\nSetBorderColor 0 0 0\nSetTextColor 0 0 0 255\nSetBackgroundColor 252 3 181 255\nSetFontSize 20\n\n",
+                        "Hide\nIdentified False\nRarity Rare\nItemLevel >= 60\nItemLevel <= 90\nClass \"Rings\"\nSetBorderColor 0 0 0\nSetTextColor 0 0 0 255\nSetBackgroundColor 252 3 181 255\nSetFontSize 20\n\n"]
+   
+
 class Chaos:
 
-    def __init__(self, settings, inventory, log):
+    def __init__(self, settings, inventory, log, itemFilter):
         self.settings = settings
         self.inventory = inventory
         self.log = log
+        self.itemFilter = itemFilter
+        self.updateFunction = None
 
         self.hideout = False
 
@@ -38,6 +59,9 @@ class Chaos:
         if self.hideout:
             #moving from a zone with a stash, update the stash
             self.inventory.updateStash("Chaos")
+            self.sendFilterUpdates()
+            if self.HUDUpdate != None:
+                self.HUDUpdate(self.getChaosHUDString())
         
         #note, this will probably act up when encountering HO/s in the wild that need to be cleared. This should be rare enough that the extra
         #API calls wont pose a problem
@@ -174,6 +198,7 @@ class Chaos:
         return itemSet
     
     def getChaosHUDString(self):
+        print("Getting HUD String")
         inventoryId = "Stash" + str(1 + self.settings.currentSettings["Chaos"]["index"])
 
         lowItems = {"Weapon":[],
@@ -215,3 +240,53 @@ class Chaos:
             HUDString += "{}:{}/{},".format(slot[:2], len(highItems[slot]), len(lowItems[slot]))
         
         return HUDString
+
+    def sendFilterUpdates(self):
+        itemLimits = self.settings.currentSettings["Chaos"]["item_limit"]
+
+        inventoryId = "Stash" + str(1 + self.settings.currentSettings["Chaos"]["index"])
+
+        lowItems = {"Weapon":[],
+                    "Body"  :[],
+                    "Helm"  :[],
+                    "Glove" :[],
+                    "Boot"  :[],
+                    "Belt"  :[],
+                    "Amulet":[],
+                    "Ring"  :[]}
+        
+        highItems = {"Weapon":[],
+                     "Body"  :[],
+                     "Helm"  :[],
+                     "Glove" :[],
+                     "Boot"  :[],
+                     "Belt"  :[],
+                     "Amulet":[],
+                     "Ring"  :[]}
+
+        for itemId, item in self.inventory.stash.items():
+
+            if item["inventoryId"] == inventoryId and item["frameType"] == 2 and len(item["sockets"]) <= 5:
+
+                #add it to the list of usable items
+                if not item["identified"]: #Can change this later to allow for the option to do unid'd chaos recipe
+                    for slot in itemClassMap:
+                        if itemSizeMap[slot]["w"] == item["w"] and itemSizeMap[slot]["h"] == item["h"]:
+                            for base in itemClassMap[slot]:
+                                if base in item["typeLine"]:
+                                    if 60 <= item["ilvl"] < 75:
+                                        lowItems[slot].append(itemId)
+                                    elif item["ilvl"] > 75:
+                                        highItems[slot].append(itemId)
+        
+        filterString = ""
+
+        for k in itemLimits:
+            if len(highItems[k]) + len(lowItems[k]) < itemLimits[k]:
+                filterString += chaosFilterTextShow[k]
+        
+        self.itemFilter.addHighlight("Chaos", filterString)
+
+    def setHUDUpdate(self, updateFunction):
+        #The HUD will pass us the function that we send our updated strings to, Chaos stores it and calls it after triggering an inventory update
+        self.HUDUpdate = updateFunction

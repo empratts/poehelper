@@ -66,6 +66,7 @@ class UserInterface(Frame):
     def initChaosHUD(self):
         settings = self.settings.getWindowSettings("ChaosHUD")
         self.chaosHUD = HUDOverlay(self,settings["x"],settings["y"],settings["w"],settings["h"],8, settings["colors"])
+        self.chaos.setHUDUpdate(self.chaosHUD.updateText)
 
     def toggleChaosOverlay(self):
 

@@ -4,6 +4,7 @@ from api import API
 from ui import UserInterface
 from chaos import Chaos
 from log import ReadLogFile
+from itemFilter import Filter
 from inventory import Inventory
 from tkinter import Tk, N, Button
 import requests
@@ -33,7 +34,8 @@ def main():
     log.reopenLogfile()
 
     inv = Inventory(settings, api)
-    chaos = Chaos(settings, inv, log)
+    itemFilter = Filter(settings)
+    chaos = Chaos(settings, inv, log, itemFilter)
 
     ui = UserInterface(root, settings, inv, api, chaos, log)
 
