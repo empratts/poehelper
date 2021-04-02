@@ -3,6 +3,7 @@ from settings import Settings
 from api import API
 from ui import UserInterface
 from chaos import Chaos
+from character import Character
 from log import ReadLogFile
 from itemFilter import Filter
 from inventory import Inventory
@@ -36,6 +37,7 @@ def main():
     inv = Inventory(settings, api)
     itemFilter = Filter(settings)
     chaos = Chaos(settings, inv, log, itemFilter)
+    character = Character(settings, inv, log, itemFilter)
 
     ui = UserInterface(root, settings, inv, api, chaos, log)
 

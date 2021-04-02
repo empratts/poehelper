@@ -49,6 +49,7 @@ class Chaos:
         self.log = log
         self.itemFilter = itemFilter
         self.updateFunction = None
+        self.oldFilterString = ""
 
         self.hideout = False
 
@@ -285,7 +286,9 @@ class Chaos:
             if len(highItems[k]) + len(lowItems[k]) < itemLimits[k]:
                 filterString += chaosFilterTextShow[k]
         
-        self.itemFilter.addHighlight("Chaos", filterString)
+        if filterString != self.oldFilterString:
+            self.itemFilter.addHighlight("Chaos", filterString)
+            self.oldFilterString = filterString
 
     def setHUDUpdate(self, updateFunction):
         #The HUD will pass us the function that we send our updated strings to, Chaos stores it and calls it after triggering an inventory update
