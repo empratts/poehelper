@@ -37,9 +37,9 @@ def main():
     inv = Inventory(settings, api)
     itemFilter = Filter(settings)
     chaos = Chaos(settings, inv, log, itemFilter)
-    character = Character(settings, inv, log, itemFilter)
+    character = Character(settings, inv, api, log, itemFilter)
 
-    ui = UserInterface(root, settings, inv, api, chaos, log)
+    ui = UserInterface(root, settings, inv, api, chaos, log, character)
 
     Button(root, text="Quit", command = gracefulExit, anchor=N).place(x=root.winfo_screenwidth()/2, y=root.winfo_screenheight()-30)
 

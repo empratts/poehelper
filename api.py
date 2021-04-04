@@ -19,8 +19,10 @@ class API:
         self.settings = settings
         self.stashTabURL = 'https://www.pathofexile.com/character-window/get-stash-items?league={}&tabs=1&tabIndex={}&accountName={}'
         self.stashTabAPI = 'https://www.pathofexile.com/character-window/get-stash-items'
-        self.characterURL = 'https://www.pathofexile.com/character-window/get-items'
-        self.characterAPI = 'https://www.pathofexile.com/character-window/get-items'
+        self.characterURL = 'https://www.pathofexile.com/character-window/get-characters'
+        self.characterAPI = 'https://www.pathofexile.com/character-window/get-characters'
+        self.characterItemURL = 'https://www.pathofexile.com/character-window/get-items'
+        self.characterItemAPI = 'https://www.pathofexile.com/character-window/get-items'
         self.rateLimit = RateLimiter()
 
     def updateStashTab(self, tabName):
@@ -78,17 +80,17 @@ class API:
                     break
         return stash
        
-    def updateCharacter(self):
+    def updateCharacterItems(self):
         account = self.settings.currentSettings["account"]
         character = self.settings.currentSettings["character"]
         POESESSID = self.settings.currentSettings["POESESSID"]
 
         char = {}
 
-        if self.rateLimit.checkRateLimit(self.characterAPI):
+        if self.rateLimit.checkRateLimit(self.characterItemAPI):
             cookies = {'POESESSID':POESESSID}
             data = {'accountName':account,'realm':'pc','character':character}
-            url = self.characterURL
+            url = self.characterItemURL
 
             response = requests.post(url, headers=headers, cookies=cookies, data=data) #if this errors, might need to change to using json instead of data
             print("POST: {}".format(url))
@@ -99,7 +101,35 @@ class API:
             else:
                 char = response.json()
 
-            self.rateLimit.processResponse(self.characterAPI, response.headers) #are these headers valid in non-200 status cases?
+            self.rateLimit.processResponse(self.characterItemAPI, response.headers) #are these headers valid in non-200 status cases?
+
+        return char
+
+    def updateCharacter(self):
+        account = self.settings.currentSettings["account"]
+        character = self.settings.currentSettings["character"]
+        POESESSID = self.settings.currentSettings["POESESSID"]
+
+        char = {}
+
+        if self.rateLimit.checkRateLimit(self.characterAPI):
+            cookies = {'POESESSID':POESESSID}
+            data = {'accountName':account,'realm':'pc'}
+            url = self.characterURL
+
+            response = requests.post(url, headers=headers, cookies=cookies, data=data) #if this errors, might need to change to using json instead of data
+            print("POST: {}".format(url))
+
+            if response.status_code != 200:
+                print("HTTP Error: " + str(response.status_code))
+                return None
+            else:
+                charResponse = response.json()
+                for item in charResponse:
+                    if item["name"] == character:
+                        char = item
+
+            self.rateLimit.processResponse(self.characterItemAPI, response.headers) #are these headers valid in non-200 status cases?
 
         return char
     

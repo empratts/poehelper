@@ -11,12 +11,12 @@ from pathlib import Path
 
 class UserInterface(Frame):
 
-    def __init__(self, master, settings, inventory, api, chaos, log):
+    def __init__(self, master, settings, inventory, api, chaos, log, character):
         super().__init__(master=master)
 
-        self.initUI(settings, inventory, api, chaos, log)
+        self.initUI(settings, inventory, api, chaos, log, character)
 
-    def initUI(self, settings, inventory, api, chaos, log):
+    def initUI(self, settings, inventory, api, chaos, log, character):
 
         self.master.title("Overlay Frame")
         self.pack(fill=BOTH, expand=1)
@@ -29,6 +29,7 @@ class UserInterface(Frame):
         self.api = api
         self.chaos = chaos
         self.log = log
+        self.character = character
         self.hideout = False
 
         self.canvas = Canvas(self, bd=-2)
@@ -46,6 +47,9 @@ class UserInterface(Frame):
 
         self.chaosHUD = None
         self.initChaosHUD()
+
+        self.characterHUD = None
+        self.initCharacterHUD()
 
         self.redraw()
 
@@ -67,6 +71,11 @@ class UserInterface(Frame):
         settings = self.settings.getWindowSettings("ChaosHUD")
         self.chaosHUD = HUDOverlay(self,settings["x"],settings["y"],settings["w"],settings["h"],8, settings["colors"])
         self.chaos.setHUDUpdate(self.chaosHUD.updateText)
+
+    def initCharacterHUD(self):
+        settings = self.settings.getWindowSettings("CharacterHUD")
+        self.characterHUD = HUDOverlay(self,settings["x"],settings["y"],settings["w"],settings["h"],4, settings["colors"])
+        self.character.setHUDUpdate(self.characterHUD.updateText)
 
     def toggleChaosOverlay(self):
 
@@ -333,7 +342,7 @@ class HUDOverlay:
         self.stringCanvas.place(x=self.x, y=self.y)
 
         for i in range(self.textCount):
-            self.text.append(self.stringCanvas.create_text(int(i * self.w / 8),0, anchor=NW, text="", font=("Courier", 16), fill=self.colors[i]))
+            self.text.append(self.stringCanvas.create_text(int(i * self.w / self.textCount),0, anchor=NW, text="", font=("Courier", 16), fill=self.colors[i]))
 
     def updateText(self, text):
         strings = text.split(",")

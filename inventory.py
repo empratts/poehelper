@@ -34,13 +34,13 @@ class Inventory:
         self.parseStash(stash, tabIndex)
 
     def updateCharacter(self):
-        character = self.api.updateCharacter()
+        character = self.api.updateCharacterItems()
         self.parseCharacter(character)
 
     def parseStash(self, response, tabIndex):
         if response == None:
             return
-            
+
         responseItems = response["items"]
 
         for description in response["tabs"]:

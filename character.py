@@ -11,23 +11,50 @@ import json
 
 
 class Character():
-    def __init__(self, settings, inventory, log, itemFilter):
+    def __init__(self, settings, inventory, api, log, itemFilter):
         self.settings = settings
         self.inventory = inventory
+        self.api = api
         self.log = log
         self.itemFilter = itemFilter
-        self.plan = {}
+        self.characterPlan = {}
+        self.zonePlan = []
         self.level = 1
+        self.currentZone = ""
         self.oldFilterString = ""
+        self.oldZoneString = ""
+        self.HUDUpdate = None
 
         self.loadCharacterPlan()
+        self.loadZonePlan()
 
-        self.log.registerCallback(self.logCallback, ": You have entered")
+        self.log.registerCallback(self.logCallbackOnZoneChange, ": You have entered")
+        self.log.registerCallback(self.logCallbackOnCharacterLevel, " \\(.*\\) is now level")
     
-    def logCallback(self, text):
+    def logCallbackOnZoneChange(self, text):
         self.inventory.updateCharacter()
+        character = self.api.updateCharacter()
+        if character != {}:
+            self.level = character["level"]
         self.sendFilterUpdates()
 
+        strIndex = text.find(": You have entered")
+        self.currentZone = text[strIndex+19:-2]
+
+        if self.HUDUpdate != None:
+            self.HUDUpdate(self.getCharacterHUDString())
+    
+    def logCallbackOnCharacterLevel(self, text):
+        parsedLevel = 0
+
+        strIndex = text.find(") is now level ")
+        parsedLevel = int(text[strIndex+15:-1])
+
+        self.level = parsedLevel
+        
+        if self.HUDUpdate != None:
+            self.HUDUpdate(self.getCharacterHUDString())
+        
     def sendFilterUpdates(self):
         newString = self.getFlaskFilterString()
         if newString != self.oldFilterString:
@@ -36,7 +63,7 @@ class Character():
 
     def getFlaskFilterString(self):
 
-        if self.plan == {}:
+        if self.characterPlan == {}:
             return ""
 
         #determine what flasks are equipped
@@ -48,7 +75,7 @@ class Character():
 
         #determine what level of the flask progression the character is at
         recommendedSetup = {}
-        for setup in self.plan["Flasks"]:
+        for setup in self.characterPlan["Flasks"]:
             if setup["Level"] <= self.level:
                 recommendedSetup = setup
 
@@ -73,9 +100,9 @@ class Character():
         for i in range(lifeCount):
             progress.append(-1)
             progressFlask = ""
-            for j in range(len(self.plan["LifeProgression"][i])):
+            for j in range(len(self.characterPlan["LifeProgression"][i])):
                 for flask in lifeFlasks:
-                    if self.plan["LifeProgression"][i][j]["Size"] in flask and self.plan["LifeProgression"][i][j]["Prefix"] in flask:
+                    if self.characterPlan["LifeProgression"][i][j]["Size"] in flask and self.characterPlan["LifeProgression"][i][j]["Prefix"] in flask:
                         progress[-1] = j
                         progressFlask = flask
             
@@ -101,7 +128,7 @@ class Character():
         #turn on highlights for flasks that are past where the character is in their progressions
         for i in range(len(progress)):
             p = progress[i]
-            progression = self.plan["LifeProgression"][i]
+            progression = self.characterPlan["LifeProgression"][i]
             for j in range(p+1,len(progression)):
                 size = progression[j]["Size"]
                 prefix = progression[j]["Prefix"]
@@ -134,7 +161,79 @@ class Character():
         
         try:
             f = open(planFile, "r")
-            self.plan = json.load(f)
+            self.characterPlan = json.load(f)
             f.close()
         except json.decoder.JSONDecodeError:
             print("Error loading JSON from character plan")
+
+    def loadZonePlan(self):
+        planFile = self.settings.getFileSettings("zonePlan")
+        
+        try:
+            f = open(planFile, "r")
+            self.zonePlan = json.load(f)
+            f.close()
+        except json.decoder.JSONDecodeError:
+            print("Error loading JSON from character plan")
+
+    def setHUDUpdate(self, updateFunction):
+        self.HUDUpdate = updateFunction
+
+    def getCharacterHUDString(self):
+        HUDString = ""
+
+        #Flask Info
+        flaskString = ""
+        for item in self.inventory.worn.values():
+            if "Flask" in item["inventoryId"] and "Life" in item["typeLine"]:
+                flaskString += "{} ".format(getFlaskRequiredLevel(item["typeLine"]))
+
+        HUDString += "{},".format(flaskString)
+
+        #Level/Exp info
+        HUDString += "{}->{},".format(self.level, self.level + 3 + self.level//16)
+
+        #Zone Info
+        zoneLevelString = ""
+        zoneNameString = ""
+        for i in range(len(self.zonePlan)):
+            if self.zonePlan[i]["Name"] == self.currentZone and self.level <= self.zonePlan[i]["Level"] + self.zonePlan[i]["MaxOverlevel"]:
+                zonesToDisplay = min(5, len(self.zonePlan) - i)
+                for j in range(zonesToDisplay):
+                    if self.zonePlan[i+j]["Level"] < 10:
+                        tempStr = "{}--"
+                    else:
+                        tempStr = "{}-"
+                    zoneLevelString += tempStr.format(self.zonePlan[i+j]["Level"])
+                    zoneNameString += "{}-".format(self.zonePlan[i+j]["Nickname"])
+                
+                self.oldZoneString = zoneLevelString[:-1] + "\n" + zoneNameString[:-1] + ","
+                break
+
+
+        HUDString += self.oldZoneString
+        
+        
+        #Currency info
+        HUDString += "Currency Info ,"
+
+        return HUDString
+    
+def getFlaskRequiredLevel(typeLine):
+    lifeFlaskLevels = {"Small": "1",
+                    "Medium": "3",
+                    "Large": "6",
+                    "Greater": "12",
+                    "Grand": "18",
+                    "Giant": "24",
+                    "Colossal": "30",
+                    "Sacred": "36",
+                    "Hallowed": "42",
+                    "Sanctified": "50",
+                    "Divine": "60",
+                    "Eternal": "65"}
+
+    if "Life" in typeLine:
+        for flask in lifeFlaskLevels:
+            if flask in typeLine:
+                return lifeFlaskLevels[flask]
