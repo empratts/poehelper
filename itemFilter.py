@@ -18,8 +18,8 @@ class Filter:
         self.updateActiveFilter()
     
     def updateActiveFilter(self):
-        baseFilter = self.settings.getFileSettings("baseFilter")
-        activeFilter = self.settings.getFileSettings("activeFilter")
+        baseFilter = self.settings.getFilePath("baseFilter")
+        activeFilter = self.settings.getFilePath("activeFilter")
 
         active = open(activeFilter, "w")
 

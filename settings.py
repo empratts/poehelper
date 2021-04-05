@@ -10,6 +10,7 @@ from pathlib import Path
 
 class Settings:
     #default settings in the event that settings.json is empty
+    #TODO: As of 5 April 2021, this is probably totally F'd-- Has not been updated in forever... Needs refactor
     defaultSettings = {'league':'',
                        'account_name':'',
                        'character_name':'',
@@ -105,15 +106,31 @@ class Settings:
 
         self.writeSettings()
 
-    def updateFileSettings(self, file, path):
+    def updateFileSettings(self, fileName, path):
         #path should be a pathlib.Path object, not a string.
-        file = "#!"+file
+        fileName = "#!"+fileName
 
-        self.currentSettings[file] = str(path.as_posix())
+        self.currentSettings[fileName]["path"] = str(path.as_posix())
 
     def listSettings(self):
         return unwrap(self.currentSettings)
     
+    def listWindows(self):
+        #return a list of windows for which there are settings
+        windows = []
+        for setting in self.currentSettings:
+            if setting[0] == "#" and setting[1] != "!":
+                windows.append(setting[1:])
+        return windows
+
+    def listFiles(self):
+        #return a list of files for which there are settings
+        files = []
+        for setting in self.currentSettings:
+            if setting[:2] == "#!":
+                files.append(setting[2:])
+        return files
+
     def getWindowSettings(self, window):
         window = "#"+window
         if window in self.currentSettings:
@@ -121,11 +138,19 @@ class Settings:
         else:
             return {"x":200,"y":200,"w":400,"h":600}
 
-    def getFileSettings(self, file):
+    def getFilePath(self, file):
         #returns a string pathname that should be fed to a pathlib.Path object
         file = "#!"+file
         if file in self.currentSettings:
-            return self.currentSettings[file]
+            return self.currentSettings[file]["path"]
+        else:
+            return './'
+    
+    def getFileType(self, file):
+        #returns a string extention of the file
+        file = "#!"+file
+        if file in self.currentSettings:
+            return self.currentSettings[file]["type"]
         else:
             return '.'
 

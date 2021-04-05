@@ -8,7 +8,7 @@ Character module allows for character tracking and planning.
 -MODIFIES THE LOOT FILTER IN REAL TIME based on the above suggestions
 """
 import json
-
+import re
 
 class Character():
     def __init__(self, settings, inventory, api, log, itemFilter):
@@ -24,6 +24,8 @@ class Character():
         self.oldFilterString = ""
         self.oldZoneString = ""
         self.HUDUpdate = None
+        self.charDefStats = {"Life": 0,"Fire": 0,"Cold": 0,"Lightning": 0,"Chaos": 0}
+        self.equippedItemStats = {}
 
         self.loadCharacterPlan()
         self.loadZonePlan()
@@ -40,6 +42,8 @@ class Character():
 
         strIndex = text.find(": You have entered")
         self.currentZone = text[strIndex+19:-2]
+
+        self.parseInventoryForDefenses()
 
         if self.HUDUpdate != None:
             self.HUDUpdate(self.getCharacterHUDString())
@@ -157,7 +161,7 @@ class Character():
         return finalString
 
     def loadCharacterPlan(self):
-        planFile = self.settings.getFileSettings("characterPlan")
+        planFile = self.settings.getFilePath("characterPlan")
         
         try:
             f = open(planFile, "r")
@@ -167,7 +171,7 @@ class Character():
             print("Error loading JSON from character plan")
 
     def loadZonePlan(self):
-        planFile = self.settings.getFileSettings("zonePlan")
+        planFile = self.settings.getFilePath("zonePlan")
         
         try:
             f = open(planFile, "r")
@@ -219,6 +223,107 @@ class Character():
 
         return HUDString
     
+    def parseInventoryForDefenses(self):
+        self.charDefStats = {"Life": 0,"Fire": 0,"Cold": 0,"Lightning": 0,"Chaos": 0}
+        
+        equippedItems = []
+
+        for item in self.inventory.worn.values():
+            if not("Flask" in item["inventoryId"] or "MainInventory" in item["inventoryId"]):
+                equippedItems.append(item)
+
+        for item in equippedItems:
+            itemStats = getParsedItemDefenses(item)
+            for stat in self.charDefStats:
+                self.charDefStats[stat] += itemStats[stat]
+
+            self.equippedItemStats[item["inventoryId"]] = itemStats
+
+        print(self.charDefStats)
+        self.generateGearDefScores()
+    
+    def generateGearDefScores(self):
+        for invId, item in self.equippedItemStats.items():
+            fireScore = 0
+            coldScore = 0
+            lightningScore = 0
+            chaosScore = 0
+            lifeScore = 0
+
+            if self.charDefStats["Fire"] > 0:
+                fireScore = 100.0 * ( 1.0 - min(135, self.charDefStats["Fire"] - item["Fire"])/min(135, self.charDefStats["Fire"]))
+            
+            if self.charDefStats["Cold"] > 0:
+                coldScore = 100.0 * ( 1.0 - min(135, self.charDefStats["Cold"] - item["Cold"])/min(135, self.charDefStats["Cold"]))
+            
+            if self.charDefStats["Lightning"] > 0:
+                lightningScore = 100.0 * ( 1.0 - min(135, self.charDefStats["Lightning"] - item["Lightning"])/min(135, self.charDefStats["Lightning"]))
+            
+            if self.charDefStats["Chaos"] > 0:
+                chaosScore = 100.0 * ( 1.0 - min(135, self.charDefStats["Chaos"] - item["Chaos"])/min(135, self.charDefStats["Chaos"]))
+            
+            if self.charDefStats["Life"] > 0:
+                lifeScore = 100* (1- (self.charDefStats["Life"] - item["Life"])/self.charDefStats["Life"])
+
+            resScore = (fireScore + coldScore + lightningScore + chaosScore) / 4.0
+
+            self.equippedItemStats[invId]["ResScore"] = resScore
+            self.equippedItemStats[invId]["LifeScore"] = lifeScore
+
+            print("{} -> {}".format(invId,self.equippedItemStats[invId]))
+
+def getParsedItemDefenses(item):
+    resRegex = r'\+(\d*)% to (.*) Resistance'
+    lifeRegex = r'\+(\d*) to maximum Life|\+(\d*) to (?:Strength|All Attributes)'
+    resCheck = re.compile(resRegex)
+    lifeCheck = re.compile(lifeRegex)
+
+    itemStats = {"Life": 0,"Fire": 0,"Cold": 0,"Lightning": 0,"Chaos": 0, "All Elemental": 0, "LifeScore": 0.0, "ResScore": 0.0 }
+
+    if "implicitMods" in item:
+        for mod in item["implicitMods"]:
+            m = resCheck.match(mod)
+            if m != None:
+                roll = int(m.group(1))
+                for stat in itemStats:
+                    if stat in m.group(2):
+                        itemStats[stat] += roll
+            
+            m = lifeCheck.match(mod)
+            if m != None:
+                if m.group(1) != None:
+                    roll = int(m.group(1))
+                else:
+                    roll = 0.5 * int(m.group(2))
+
+                itemStats["Life"] += roll
+    
+    if "explicitMods" in item:
+        for mod in item["explicitMods"]:
+            m = resCheck.match(mod)
+            if m != None:
+                roll = int(m.group(1))
+                for stat in itemStats:
+                    if stat in m.group(2):
+                        itemStats[stat] += roll
+
+            m = lifeCheck.match(mod)
+            if m != None:
+                if m.group(1) != None:
+                    roll = int(m.group(1))
+                else:
+                    roll = 0.5 * int(m.group(2))
+                    
+                itemStats["Life"] += roll
+    
+    itemStats["Fire"] += itemStats["All Elemental"]
+    itemStats["Cold"] += itemStats["All Elemental"]
+    itemStats["Lightning"] += itemStats["All Elemental"]
+    itemStats.pop("All Elemental")
+
+    return itemStats
+
+
 def getFlaskRequiredLevel(typeLine):
     lifeFlaskLevels = {"Small": "1",
                     "Medium": "3",

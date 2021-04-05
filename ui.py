@@ -176,32 +176,30 @@ class SettingsMenu(Toplevel):
 
         settingsFrame.pack()
 
-        logButton = Button(self, text="Log File", command=self.updateLogFile, anchor=N)
-        logButton.pack()
+        #Make a file update button for every file in the settings:
+        fileList = self.parent.settings.listFiles()
 
-        baseButton = Button(self, text="Base Filter", command=self.updateBaseFilter, anchor=N)
-        baseButton.pack()
-
-        activeButton = Button(self, text="Active Filter", command=self.updateActiveFilter, anchor=N)
-        activeButton.pack()
+        for fileName in fileList:
+            cmd = partial(self.updateFile, fileName)
+            b = Button(self, text=fileName, command=cmd, anchor=N)
+            b.pack()
 
         save = Button(self,text="Save", command=self.saveAndClose, anchor=N)
         save.pack()
 
-    def updateLogFile(self):
-        initial = self.parent.settings.getFileSettings("logFile")
-        filePath = Path(filedialog.askopenfilename(initialdir=initial, title="Select PoE Log File", filetypes = (("Text files", "*.txt*"), ("all files", "*.*"))))
-        self.parent.settings.updateFileSettings("logFile", filePath)
+    def updateFile(self, fileName):
+        previousPath = Path(self.parent.settings.getFilePath(fileName))
+        fileType = self.parent.settings.getFileType(fileName)
+        if previousPath.exists():
+            initial = previousPath.parent
+        else:
+            initial = "./"
+        
+        name = filedialog.askopenfilename(initialdir=initial, title="Select {}".format(fileName), filetypes = ((fileType, "*{}*".format(fileType)), ("all files", "*.*")))
 
-    def updateBaseFilter(self):
-        initial = self.parent.settings.getFileSettings("baseFilter")
-        filePath = Path(filedialog.askopenfilename(initialdir=initial, title="Select Base Filter", filetypes = (("Filter files", "*.filter*"), ("all files", "*.*"))))
-        self.parent.settings.updateFileSettings("baseFilter", filePath)
-
-    def updateActiveFilter(self):
-        initial = self.parent.settings.getFileSettings("activeFilter")
-        filePath = Path(filedialog.askopenfilename(initialdir=initial, title="Select Active Filter", filetypes = (("Filter files", "*.filter*"), ("all files", "*.*"))))
-        self.parent.settings.updateFileSettings("activeFilter", filePath)
+        if name != "":
+            filePath = Path(name)
+            self.parent.settings.updateFileSettings(fileName, filePath)
 
     def saveAndClose(self):
         settings = {}

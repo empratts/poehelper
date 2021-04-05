@@ -34,7 +34,7 @@ class ReadLogFile:
 
         if self.logFile is None:
             try:
-                logPath = Path(self.settings.getFileSettings("logFile"))
+                logPath = Path(self.settings.getFilePath("logFile"))
                 if logPath.suffix == ".txt" and logPath.exists():
                     self.logFile = open(logPath, "r", errors='ignore')
                     self.logFile.seek(0,2)
