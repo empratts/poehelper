@@ -3,33 +3,38 @@
     "account": "",
     "character": "",
     "POESESSID": "",
-    "#!logFile": "",
     "resolution": {
         "x": 2560,
         "y": 1440
     },
     "autoDump": true,
-    "chaos": {
+    "Chaos": {
         "item_limit": {
-            "body": 6,
-            "weapon": 12,
-            "glove": 6,
-            "boot": 6,
-            "helm": 6,
-            "belt": 30,
-            "amulet": 100,
-            "ring": 256
+            "Body": 6,
+            "Weapon": 12,
+            "Glove": 6,
+            "Boot": 6,
+            "Helm": 6,
+            "Belt": 30,
+            "Amulet": 100,
+            "Ring": 256
         },
         "preserve_low_level": false,
         "disable_recipe": false,
         "tab": "Chaos",
-        "index": 4
+        "index": 5
     },
     "#Menu": {
-        "x": 804,
-        "y": 394,
+        "x": 854,
+        "y": 435,
         "w": 414,
-        "h": 554
+        "h": 596
+    },
+    "#Control": {
+        "x": 391,
+        "y": 543,
+        "w": 820,
+        "h": 596
     },
     "#Chaos": {
         "x": 22,
@@ -43,6 +48,22 @@
     "#ChaosHUD": {
         "x": 800,
         "y": 1380,
+        "w": 960,
+        "h": 200,
+        "colors": [
+            "#fcba03",
+            "#fc0303",
+            "#90fc03",
+            "#03fcce",
+            "#0345fc",
+            "#be03fc",
+            "#fc03b5",
+            "#fc03b5"
+        ]
+    },
+    "#CharacterHUD": {
+        "x": 900,
+        "y": 90,
         "w": 960,
         "h": 200,
         "colors": [
@@ -74,6 +95,24 @@
         "border": 3,
         "tabType": "Vendor"
     },
-    "#!baseFilter": "",
-    "#!activeFilter": ""
+    "#!logFile": {
+        "path": "",
+        "type": ".txt"
+    },
+    "#!baseFilter": {
+        "path": "",
+        "type": ".filter"
+    },
+    "#!activeFilter": {
+        "path": "",
+        "type": ".filter"
+    },
+    "#!characterPlan": {
+        "path": "",
+        "type": ".json"
+    },
+    "#!zonePlan": {
+        "path": "",
+        "type": ".json"
+    }
 }

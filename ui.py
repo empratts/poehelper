@@ -397,10 +397,6 @@ class ControlPannel(Toplevel):
             self.inventoryButtons.append(Button(self.inventoryFrame, text=item, command=func))
             i += 1
         
-        #for i in range(12):
-        #    func = partial(self.inventoryItemSelect, i)
-        #    self.inventoryButtons.append(Button(self.inventoryFrame, text="Item {}".format(i), command=func))
-
         self.redraw()
 
     def redraw(self):

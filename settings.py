@@ -32,40 +32,22 @@ class Settings:
                 f.close()
             except json.decoder.JSONDecodeError:
                 print("Error loading JSON from settings file, using defaults")
-                self.currentSettings = self.defaultSettings
+                #Dont enclose this in a try block. If this goes bad, we want a crash
+
+                f = open("default_settings.json", "r")
+                self.currentSettings = json.load(f)
+                f.close()
+                
                 self.writeSettings()
-                #TODO: add some way of recovering broken settings file instead of just overwriting it?
-            
+                
         else:
-            self.currentSettings = self.defaultSettings
+            #same as above, crash here if default settings fail to load...change this later
+            f = open("default_settings.json", "r")
+            self.currentSettings = json.load(f)
+            f.close()
+
             self.writeSettings()
 
-        self.combatZones = {}
-
-        #load zone names and levels
-        if Path('./combatZones.txt').exists():
-            f = open('combatZones.txt', "r")
-            content = f.readlines()
-            f.close()
-
-            for line in content:
-                zone = line.strip("\n").split("-")
-                if zone[0] in self.combatZones:
-                    self.combatZones[zone[0]].append(int(zone[1]))
-                else:
-                    self.combatZones[zone[0]] = [int(zone[1])]
-        
-        self.townZones = []
-
-        #load zone names and levels
-        if Path('./townZones.txt').exists():
-            f = open('townZones.txt', "r")
-            content = f.readlines()
-            f.close()
-
-            for line in content:
-                zone = line.strip("\n")
-                self.townZones.append(zone)
 
     def writeSettings(self):
         #TODO: Add some error checking here
