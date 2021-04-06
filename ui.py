@@ -377,6 +377,8 @@ class ControlPannel(Toplevel):
         self.parent = parent
         self.title = "Control Pannel"
 
+        self.parent.character.registerUIUpdate(self.inventoryUpdated)
+
         windowSettings = self.parent.settings.getWindowSettings("Control")
         self.geometry("{}x{}+{}+{}".format(windowSettings["w"], windowSettings["h"], windowSettings["x"], windowSettings["y"]))
 
@@ -389,13 +391,20 @@ class ControlPannel(Toplevel):
         self.itemSearchTitles = []
         self.itemSearchButtons = []
 
-        for i in range(12):
+        i = 0
+        for item, stats in self.parent.character.equippedItemStats.items():
             func = partial(self.inventoryItemSelect, i)
-            self.inventoryButtons.append(Button(self.inventoryFrame, text="Item {}".format(i), command=func))
+            self.inventoryButtons.append(Button(self.inventoryFrame, text=item, command=func))
+            i += 1
+        
+        #for i in range(12):
+        #    func = partial(self.inventoryItemSelect, i)
+        #    self.inventoryButtons.append(Button(self.inventoryFrame, text="Item {}".format(i), command=func))
 
         self.redraw()
 
     def redraw(self):
+
         for button in self.inventoryButtons:
             button.place_forget()
         
@@ -410,7 +419,10 @@ class ControlPannel(Toplevel):
         self.inventoryLabel.pack()
 
         buttonCount = len(self.inventoryButtons)
-        buttonWidth = 1.0 / buttonCount
+        if buttonCount > 0:
+            buttonWidth = 1.0 / buttonCount
+        else:
+            buttonWidth = 1.0
 
         for i in range(buttonCount):
             self.inventoryButtons[i].place(relheight=1.0,relwidth=0.98*buttonWidth,relx=buttonWidth*i)
@@ -438,5 +450,26 @@ class ControlPannel(Toplevel):
             self.itemSearchButtons.append([])
             for j in range(10):
                 self.itemSearchButtons[i].append(Button(self.itemSearchFrame, text="{}-{}".format(10 * j + 1, 10 * j + 10)))
+        
+        self.redraw()
+
+    def inventoryUpdated(self):
+        for title in self.itemSearchTitles:
+            title.destroy()
+        for buttonList in self.itemSearchButtons:
+            for button in buttonList:
+                button.destroy()
+
+        for button in self.inventoryButtons:
+            button.destroy()
+
+        self.itemSearchTitles = []
+        self.inventoryButtons = []
+
+        i = 0
+        for item, stats in self.parent.character.equippedItemStats.items():
+            func = partial(self.inventoryItemSelect, i)
+            self.inventoryButtons.append(Button(self.inventoryFrame, text=item, command=func))
+            i += 1
         
         self.redraw()

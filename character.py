@@ -9,6 +9,7 @@ Character module allows for character tracking and planning.
 """
 import json
 import re
+from pathlib import Path
 
 class Character():
     def __init__(self, settings, inventory, api, log, itemFilter):
@@ -20,15 +21,30 @@ class Character():
         self.characterPlan = {}
         self.zonePlan = []
         self.level = 1
+        self.classId = -1
+        self.allocatedPassives = {}
+        self.passiveTreeStats = {}
         self.currentZone = ""
         self.oldFilterString = ""
         self.oldZoneString = ""
         self.HUDUpdate = None
         self.charDefStats = {"Life": 0,"Fire": 0,"Cold": 0,"Lightning": 0,"Chaos": 0}
         self.equippedItemStats = {}
+        self.characterUpdatedCallback = None
 
         self.loadCharacterPlan()
         self.loadZonePlan()
+
+        self.basePassiveTree = {}
+        if Path('./passiveTree/data.json').exists():
+            try:
+                f = open('./passiveTree/data.json', 'r')
+                self.basePassiveTree = json.load(f)
+                f.close()
+            except json.decoder.JSONDecodeError:
+                print("Error loading JSON from passive tree data file")
+        else:
+            print("Passive tree data unavailable")
 
         self.log.registerCallback(self.logCallbackOnZoneChange, ": You have entered")
         self.log.registerCallback(self.logCallbackOnCharacterLevel, " \\(.*\\) is now level")
@@ -38,7 +54,11 @@ class Character():
         character = self.api.updateCharacter()
         if character != {}:
             self.level = character["level"]
+            self.classId = character["classId"]
         self.sendFilterUpdates()
+
+        self.allocatedPassives = self.api.updateCharacterPassiveTree()
+        self.updateStatsFromPassives()
 
         strIndex = text.find(": You have entered")
         self.currentZone = text[strIndex+19:-2]
@@ -47,6 +67,9 @@ class Character():
 
         if self.HUDUpdate != None:
             self.HUDUpdate(self.getCharacterHUDString())
+        
+        if self.characterUpdatedCallback != None:
+            self.characterUpdatedCallback()
     
     def logCallbackOnCharacterLevel(self, text):
         parsedLevel = 0
@@ -180,8 +203,10 @@ class Character():
         except json.decoder.JSONDecodeError:
             print("Error loading JSON from character plan")
 
-    def setHUDUpdate(self, updateFunction):
-        self.HUDUpdate = updateFunction
+    def setHUDUpdate(self, callback):
+        #call this function after things have changed to update the HUD
+        #TODO: Look at combining this with regesterUIUpdate and possibly generalize how modules send updates to the UI so that the UI code dose not reference specific modules.
+        self.HUDUpdate = callback
 
     def getCharacterHUDString(self):
         HUDString = ""
@@ -224,7 +249,7 @@ class Character():
         return HUDString
     
     def parseInventoryForDefenses(self):
-        self.charDefStats = {"Life": 0,"Fire": 0,"Cold": 0,"Lightning": 0,"Chaos": 0}
+        self.charDefStats = {"Life": 0,"Fire": 0,"Cold": 0,"Lightning": 0,"Chaos": 0, "Strength":0, "Dexterity":0, "Intelligence":0}
         
         equippedItems = []
 
@@ -270,15 +295,37 @@ class Character():
             self.equippedItemStats[invId]["ResScore"] = resScore
             self.equippedItemStats[invId]["LifeScore"] = lifeScore
 
-            print("{} -> {}".format(invId,self.equippedItemStats[invId]))
+            #print("{} -> {}".format(invId,self.equippedItemStats[invId]))
+
+    def registerUIUpdate(self, callback):
+        #call this function after the character inventory is updated to let the UI know that things have changed
+        self.characterUpdatedCallback = callback
+
+    def updateStatsFromPassives(self):
+        #start counting stats from the base values that each class gets
+        baseClass = self.basePassiveTree['classes'][self.classId]
+        self.passiveTreeStats = { "grantedStrength": baseClass["base_str"], "grantedDexterity": baseClass["base_dex"], "grantedIntelligence": baseClass["base_int"]}
+        
+        #iterate throught all allocated nodes and look them up in the base passive tree to get their stats
+        for allocatedNode in self.allocatedPassives["hashes"]:
+            nodeString = str(allocatedNode)
+            node = self.basePassiveTree["nodes"][nodeString]
+            
+            for stat in self.passiveTreeStats:
+                if stat in node:
+                    self.passiveTreeStats[stat] += node[stat]
+        
+        print(self.passiveTreeStats)
 
 def getParsedItemDefenses(item):
     resRegex = r'\+(\d*)% to (.*) Resistance'
     lifeRegex = r'\+(\d*) to maximum Life|\+(\d*) to (?:Strength|All Attributes)'
+    statRegex = r'\+(\d*) to (?:Strength|Dexterity|Intelligence|All Attributes)'
     resCheck = re.compile(resRegex)
     lifeCheck = re.compile(lifeRegex)
+    statCheck = re.compile(statRegex)
 
-    itemStats = {"Life": 0,"Fire": 0,"Cold": 0,"Lightning": 0,"Chaos": 0, "All Elemental": 0, "LifeScore": 0.0, "ResScore": 0.0 }
+    itemStats = {"Life": 0,"Fire": 0,"Cold": 0,"Lightning": 0,"Chaos": 0, "All Elemental": 0, "Strength":0, "Dexterity":0, "Intelligence":0, "LifeScore": 0.0, "ResScore": 0.0 }
 
     if "implicitMods" in item:
         for mod in item["implicitMods"]:
@@ -297,6 +344,14 @@ def getParsedItemDefenses(item):
                     roll = 0.5 * int(m.group(2))
 
                 itemStats["Life"] += roll
+
+            m = statCheck.match(mod)
+            if m != None:
+                stats = ["Strength", "Dexterity", "Intelligence"]
+                for stat in stats:
+                    if stat in mod or "All Attributes" in mod:
+                        itemStats[stat] += int(m.group(1))
+
     
     if "explicitMods" in item:
         for mod in item["explicitMods"]:
@@ -315,6 +370,13 @@ def getParsedItemDefenses(item):
                     roll = 0.5 * int(m.group(2))
                     
                 itemStats["Life"] += roll
+            
+            m = statCheck.match(mod)
+            if m != None:
+                stats = ["Strength", "Dexterity", "Intelligence"]
+                for stat in stats:
+                    if stat in mod or "All Attributes" in mod:
+                        itemStats[stat] += int(m.group(1))
     
     itemStats["Fire"] += itemStats["All Elemental"]
     itemStats["Cold"] += itemStats["All Elemental"]
@@ -322,7 +384,6 @@ def getParsedItemDefenses(item):
     itemStats.pop("All Elemental")
 
     return itemStats
-
 
 def getFlaskRequiredLevel(typeLine):
     lifeFlaskLevels = {"Small": "1",

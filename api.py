@@ -21,6 +21,7 @@ class API:
         self.stashTabAPI = 'https://www.pathofexile.com/character-window/get-stash-items'
         self.characterURL = 'https://www.pathofexile.com/character-window/get-characters'
         self.characterAPI = 'https://www.pathofexile.com/character-window/get-characters'
+        self.passiveURL = 'https://www.pathofexile.com/character-window/get-passive-skills?accountName={}&realm=pc&character={}' #Does not currently appear to have a rate limit
         self.characterItemURL = 'https://www.pathofexile.com/character-window/get-items'
         self.characterItemAPI = 'https://www.pathofexile.com/character-window/get-items'
         self.rateLimit = RateLimiter()
@@ -133,6 +134,26 @@ class API:
 
         return char
     
+    def updateCharacterPassiveTree(self):
+        account = self.settings.currentSettings["account"]
+        character = self.settings.currentSettings["character"]
+        POESESSID = self.settings.currentSettings["POESESSID"]
+
+        passives = {}
+
+        cookies = {'POESESSID':POESESSID}
+        url = self.passiveURL.format(account,character)
+        response = requests.get(url,headers=headers,cookies=cookies)
+        print("GET: {}".format(url))
+
+        if response.status_code != 200:
+            print("HTTP Error: " + str(response.status_code))
+            return None
+        else:
+            passives = response.json()
+
+        return passives
+
     def tradeSearch(self, parameters):
 
         return
