@@ -18,9 +18,10 @@ class UserInterface(Frame):
 
     def initUI(self, settings, inventory, api, chaos, log, character):
 
-        self.master.title("Overlay Frame")
+        self.master.title("PoE Helper")
         self.pack(fill=BOTH, expand=1)
         self.menu = None
+        self.control = None
         self.chaosOverlay = None
         self.mainOverlay = None
         self.vendorOverlay = None
@@ -36,8 +37,11 @@ class UserInterface(Frame):
         self.canvas.config(bg='white')
         self.canvas.pack(fill=BOTH, expand=1)
 
-        self.menuButton = Button(self.canvas, text="Menu", command = self.optionsMenu, anchor=N)
+        self.menuButton = Button(self.canvas, text="Menu", command=self.optionsMenu, anchor=N)
         self.menuButton.place(x=self.winfo_screenwidth()/2 + 30, y=0)
+
+        self.controlButton = Button(self.canvas, text="Control", command=self.controlPannel, anchor=N)
+        self.controlButton.place(x=self.winfo_screenwidth()/2 + 90, y=0)
 
         self.chaosButton = Button(self.canvas, text="Chaos", command=self.toggleChaosOverlay, anchor=N)
         self.chaosButton.place(x=self.winfo_screenwidth()/2 - 30, y=0)
@@ -66,6 +70,17 @@ class UserInterface(Frame):
         self.settings.updateWindowSettings("Menu", self.menu.winfo_width(), self.menu.winfo_height(), self.menu.winfo_x(), self.menu.winfo_y())
         self.menu.destroy()
         self.menu = None
+
+    def controlPannel(self):
+        if self.control is None:
+            self.control = ControlPannel(self.master, self)
+        else:
+            self.closeControlPannel()
+
+    def closeControlPannel(self):
+        self.settings.updateWindowSettings("Control", self.control.winfo_width(), self.control.winfo_height(), self.control.winfo_x(), self.control.winfo_y())
+        self.control.destroy()
+        self.control = None
 
     def initChaosHUD(self):
         settings = self.settings.getWindowSettings("ChaosHUD")
@@ -350,3 +365,78 @@ class HUDOverlay:
     def destroy(self):
         self.stringCanvas.destroy()
             
+class ControlPannel(Toplevel):
+
+    def __init__(self, master=None, parent=None):
+        super().__init__(master=master)
+
+        self.initControl(parent)
+
+    def initControl(self, parent):
+
+        self.parent = parent
+        self.title = "Control Pannel"
+
+        windowSettings = self.parent.settings.getWindowSettings("Control")
+        self.geometry("{}x{}+{}+{}".format(windowSettings["w"], windowSettings["h"], windowSettings["x"], windowSettings["y"]))
+
+        self.protocol("WM_DELETE_WINDOW", self.parent.closeControlPannel)
+
+        self.inventoryLabel = Label(self, text="Character Inventory Rankings")
+        self.inventoryFrame = Frame(self,width=100, height=50, bg="white")
+        self.inventoryButtons = []
+        self.itemSearchFrame = Frame(self, bg="white")
+        self.itemSearchTitles = []
+        self.itemSearchButtons = []
+
+        for i in range(12):
+            func = partial(self.inventoryItemSelect, i)
+            self.inventoryButtons.append(Button(self.inventoryFrame, text="Item {}".format(i), command=func))
+
+        self.redraw()
+
+    def redraw(self):
+        for button in self.inventoryButtons:
+            button.place_forget()
+        
+        children = self.pack_slaves()
+        for child in children:
+            child.pack_forget()
+
+        children = self.itemSearchFrame.grid_slaves()
+        for child in children:
+            child.grid_forget()
+
+        self.inventoryLabel.pack()
+
+        buttonCount = len(self.inventoryButtons)
+        buttonWidth = 1.0 / buttonCount
+
+        for i in range(buttonCount):
+            self.inventoryButtons[i].place(relheight=1.0,relwidth=0.98*buttonWidth,relx=buttonWidth*i)
+
+        for i in range(len(self.itemSearchTitles)):
+            self.itemSearchTitles[i].grid(row=i, column=0)
+            for j in range(len(self.itemSearchButtons[i])):
+                self.itemSearchButtons[i][j].grid(row=i, column=j+1)
+        
+        self.inventoryFrame.pack(fill=X)
+        self.itemSearchFrame.pack(fill=BOTH, expand=True)
+        
+    def inventoryItemSelect(self, item):
+        for title in self.itemSearchTitles:
+            title.destroy()
+        for buttonList in self.itemSearchButtons:
+            for button in buttonList:
+                button.destroy()
+
+        self.itemSearchTitles = []
+        self.itemSearchButtons = []
+
+        for i in range(3):
+            self.itemSearchTitles.append(Label(self.itemSearchFrame, text="Item {}, Attr {}".format(item, i)))
+            self.itemSearchButtons.append([])
+            for j in range(10):
+                self.itemSearchButtons[i].append(Button(self.itemSearchFrame, text="{}-{}".format(10 * j + 1, 10 * j + 10)))
+        
+        self.redraw()
