@@ -9,18 +9,6 @@ import json
 from pathlib import Path
 
 class Settings:
-    #default settings in the event that settings.json is empty
-    #TODO: As of 5 April 2021, this is probably totally F'd-- Has not been updated in forever... Needs refactor
-    defaultSettings = {'league':'',
-                       'account_name':'',
-                       'character_name':'',
-                       'POESESSID': '',
-                       'resolution': {'x':2560, 'y':1440},
-                       'chaos':{"item_limit":{'body':6,'weapon':12,'glove':6,'boot':6,'helm':6,'belt':30,'amulet':128,'ring':256},'preserve_low_level':False,'disable_recipe':False, 'tabs':{'n':'C','quad':True}}}
-                       #TODO Add more settings as needed:
-                       #stash settings, inc dump tabs, chaos tabs etc.
-                       #Inventory, button, and window locations
-                       #character planner settings
 
     def __init__(self):
         if Path('./settings.json').exists():
@@ -47,7 +35,6 @@ class Settings:
             f.close()
 
             self.writeSettings()
-
 
     def writeSettings(self):
         #TODO: Add some error checking here

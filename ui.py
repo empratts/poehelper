@@ -7,6 +7,7 @@ import time
 from datetime import datetime
 import win32api, win32gui, win32con
 from pathlib import Path
+import webbrowser
 #from log import ReadLogFile
 
 class UserInterface(Frame):
@@ -387,15 +388,16 @@ class ControlPannel(Toplevel):
         self.inventoryLabel = Label(self, text="Character Inventory Rankings")
         self.inventoryFrame = Frame(self,width=100, height=50, bg="white")
         self.inventoryButtons = []
+        self.selectedItemStats = Label(self, text="")
         self.itemSearchFrame = Frame(self, bg="white")
         self.itemSearchTitles = []
         self.itemSearchButtons = []
+        self.itemSearchGo = None
+        self.itemSearch = {}
 
-        i = 0
         for item, stats in self.parent.character.equippedItemStats.items():
-            func = partial(self.inventoryItemSelect, i)
+            func = partial(self.inventoryItemSelect, item, stats)
             self.inventoryButtons.append(Button(self.inventoryFrame, text=item, command=func))
-            i += 1
         
         self.redraw()
 
@@ -429,9 +431,13 @@ class ControlPannel(Toplevel):
                 self.itemSearchButtons[i][j].grid(row=i, column=j+1)
         
         self.inventoryFrame.pack(fill=X)
+        self.selectedItemStats.pack(fill=X)
         self.itemSearchFrame.pack(fill=BOTH, expand=True)
+        if self.itemSearchGo != None:
+            self.itemSearchGo.pack()
         
-    def inventoryItemSelect(self, item):
+    def inventoryItemSelect(self, item, stats):
+
         for title in self.itemSearchTitles:
             title.destroy()
         for buttonList in self.itemSearchButtons:
@@ -440,13 +446,76 @@ class ControlPannel(Toplevel):
 
         self.itemSearchTitles = []
         self.itemSearchButtons = []
+        self.itemSearch = {"Slot": item}
 
-        for i in range(3):
-            self.itemSearchTitles.append(Label(self.itemSearchFrame, text="Item {}, Attr {}".format(item, i)))
-            self.itemSearchButtons.append([])
-            for j in range(10):
-                self.itemSearchButtons[i].append(Button(self.itemSearchFrame, text="{}-{}".format(10 * j + 1, 10 * j + 10)))
+        selectedItemStatText = item + ":    "
+        for stat in stats:
+            if "Score" not in stat and stats[stat] != 0:
+                selectedItemStatText += "{}: {}    ".format(stat, stats[stat])
         
+        selectedItemStatText = selectedItemStatText[:-4]
+
+        self.selectedItemStats['text'] = selectedItemStatText
+
+        #this is where the controls for searchable attributes is created
+        searchableAttributes = [{"Name": "Total Life:", "Current": stats["Life"],"Start": 0, "Stop": 100, "Step": 10, "autoSelect": False, "Bases": "All"},
+                                {"Name": "MoveSpeed:", "Current": 0,"Start": 0, "Stop": 30, "Step": 5, "autoSelect": False, "Bases": "Boots"},#Fix checking MS on items and then fix current
+                                {"Name": "Eff Fire Resist:", "Current": self.parent.character.getEffectiveFireResist(item),"Start": 0, "Stop": 70, "Step": 5, "autoSelect": False, "Bases": "All"},
+                                {"Name": "Eff Cold Resist:", "Current": self.parent.character.getEffectiveColdResist(item),"Start": 0, "Stop": 70, "Step": 5, "autoSelect": False, "Bases": "All"},
+                                {"Name": "Eff Lightning Resist:", "Current": self.parent.character.getEffectiveLightningResist(item),"Start": 0, "Stop": 70, "Step": 5, "autoSelect": False, "Bases": "All"},
+                                {"Name": "Eff Chaos Resist:", "Current": stats["Chaos"],"Start": 0, "Stop": 50, "Step": 5, "autoSelect": False, "Bases": "All"},
+                                {"Name": "Eff Ele Resist:", "Current": self.parent.character.getEffectiveEleResist(item),"Start": 0, "Stop": 120, "Step": 10, "autoSelect": False, "Bases": "All"},
+                                {"Name": "Eff Resist:", "Current": self.parent.character.getEffectiveResist(item),"Start": 0, "Stop": 120, "Step": 10, "autoSelect": False, "Bases": "All"},
+                                {"Name": "Strength:", "Current": stats["Strength"],"Start": 0, "Stop": 50, "Step": 5, "autoSelect": False, "Bases": "All"},
+                                {"Name": "Dexterity:", "Current": stats["Dexterity"],"Start": 0, "Stop": 50, "Step": 5, "autoSelect": False, "Bases": "All"},
+                                {"Name": "Intelligence:", "Current": stats["Intelligence"],"Start": 0, "Stop": 50, "Step": 5, "autoSelect": False, "Bases": "All"},
+                                {"Name": "Required Level:", "Current": self.parent.character.level,"Start": self.parent.character.level, "Stop": self.parent.character.level + 5, "Step": 1, "autoSelect": True, "Bases": "All"},
+                                {"Name": "Required Str:", "Current": self.parent.character.charDefStats["Strength"],"Start": max(0,self.parent.character.charDefStats["Strength"]-25), "Stop": self.parent.character.charDefStats["Strength"]+25, "Step": 5, "autoSelect": True, "Bases": "All"},
+                                {"Name": "Required Dex:", "Current": self.parent.character.charDefStats["Dexterity"],"Start": max(0,self.parent.character.charDefStats["Dexterity"]-25), "Stop": self.parent.character.charDefStats["Dexterity"]+25, "Step": 5, "autoSelect": True, "Bases": "All"},
+                                {"Name": "Required Int:", "Current": self.parent.character.charDefStats["Intelligence"],"Start": max(0,self.parent.character.charDefStats["Intelligence"]-25), "Stop": self.parent.character.charDefStats["Intelligence"]+25, "Step": 5, "autoSelect": True, "Bases": "All"}
+                                ]
+        #TODO: Vary the searchable ranges (and gear scoring) for mods based on the available rolls for each slot - Also, add MS specifically for boots
+
+        for search in searchableAttributes:
+            if search["Bases"] == "All" or search["Bases"] == item:
+                self.itemSearchTitles.append(Label(self.itemSearchFrame, text=search["Name"], bg="white"))
+                
+                self.itemSearchButtons.append([])
+                count = (search["Stop"] - search["Start"])//search["Step"]
+
+                for j in range(count):
+                    value = search["Start"] + j * search["Step"]
+                    buttonText = str(value)
+                    onClick = partial(self.toggleSearchValue,search["Name"], value)
+                    if j == (search["Current"] - search["Start"])//search["Step"]:
+                        button = Button(self.itemSearchFrame, command=onClick, text=buttonText, bg="yellow")
+                        self.itemSearchButtons[-1].append(button)
+                        if search["autoSelect"]:
+                            self.itemSearch[search["Name"]] = value
+                            button.configure(relief=SUNKEN)
+                    else:
+                        self.itemSearchButtons[-1].append(Button(self.itemSearchFrame, command=onClick, text=buttonText))
+        
+        if self.itemSearchGo == None:
+            self.itemSearchGo = Button(self, text="Search!",command=self.searchAPIRequest)
+
+        self.redraw()
+
+    def toggleSearchValue(self, name, value):
+        if name in self.itemSearch and self.itemSearch[name] == value:
+            self.itemSearch.pop(name)
+        else:
+            self.itemSearch[name] = value
+
+        for i in range(len(self.itemSearchButtons)):
+            for button in self.itemSearchButtons[i]:
+                searchText = self.itemSearchTitles[i]['text']
+                if searchText in self.itemSearch and button['text'] == str(self.itemSearch[searchText]):
+                    button.configure(relief=SUNKEN)
+                else:
+                    button.configure(relief=RAISED)
+
+        print(self.itemSearch)
         self.redraw()
 
     def inventoryUpdated(self):
@@ -459,13 +528,123 @@ class ControlPannel(Toplevel):
         for button in self.inventoryButtons:
             button.destroy()
 
+        if self.itemSearchGo != None:
+            self.itemSearchGo.destroy()
+            self.itemSearchGo = None
+
         self.itemSearchTitles = []
         self.inventoryButtons = []
 
-        i = 0
         for item, stats in self.parent.character.equippedItemStats.items():
-            func = partial(self.inventoryItemSelect, i)
+            func = partial(self.inventoryItemSelect, item, stats)
             self.inventoryButtons.append(Button(self.inventoryFrame, text=item, command=func))
-            i += 1
         
         self.redraw()
+    
+    def searchAPIRequest(self):
+        print("Searching for: {}".format(self.itemSearch))
+        tradeSearch = generateTradeSearchJSON(self.itemSearch)
+        tradeURL = self.parent.api.tradeSearch(tradeSearch)
+        print(tradeURL)
+        webbrowser.open(tradeURL)
+
+def generateTradeSearchJSON(itemSearch):
+    typeFilterOptions = {"Gloves": "armour.gloves",
+                         "Boots": "armour.Boots",
+                         "Helm": "armour.helmet",
+                         "BodyArmour": "armour.chest",
+                         "Ring": "accessory.ring",
+                         "Ring2": "accessory.ring",
+                         "Amulet": "accessory.amulet",
+                         "Belt": "accessory.belt",
+                         "Offhand": "armour.shield",
+                         "Gloves": "armour.gloves",
+                         "Weapon": "weapon"}
+
+    statReq = {"Gloves": True,
+               "Boots": True,
+               "Helm": True,
+               "BodyArmour": True,
+               "Ring": False,
+               "Ring2": False,
+               "Amulet": False,
+               "Belt": False,
+               "Offhand": True,
+               "Gloves": True,
+               "Weapon": True}
+    
+    typeFilter = typeFilterOptions[itemSearch["Slot"]]
+
+    if statReq[itemSearch["Slot"]]:
+        reqFilters = {"str": {"max": itemSearch["Required Str:"]},
+                      "dex": {"max": itemSearch["Required Dex:"]},
+                      "int": {"max": itemSearch["Required Int:"]},
+                      "lvl": {"max": itemSearch["Required Level:"]}}
+    else:
+        reqFilters = {"lvl": {"max": itemSearch["Required Level:"]}}
+
+
+    tradeSearch = {"query": {"status": {"option": "online"},
+                             "stats": [{"type": "and", "filters": []},
+                                       {"type": "weight", "value": {"min": 0}, "filters": []}
+                                      ],
+                             "filters": {"req_filters": {"filters": reqFilters
+                                                        },
+                                         "type_filters": {"filters":{"category":{"option": typeFilter}}}
+                                        }
+                            },
+                   "sort": {"price": "asc"}
+                  }
+    
+    if "Total Life:" in itemSearch:
+        tradeSearch["query"]["stats"][0]["filters"].append({"id":"pseudo.pseudo_total_life", "value":{"min": itemSearch["Total Life:"]}})
+    else:
+        tradeSearch["query"]["stats"][0]["filters"].append({"id":"pseudo.pseudo_total_life", "disabled": True})
+
+    if "Eff Fire Resist:" in itemSearch:
+        tradeSearch["query"]["stats"][0]["filters"].append({"id":"pseudo.pseudo_total_fire_resistance", "value":{"min": itemSearch["Eff Fire Resist:"]}})
+    else:
+        tradeSearch["query"]["stats"][0]["filters"].append({"id":"pseudo.pseudo_total_fire_resistance", "disabled": True})
+    
+    if "Eff Cold Resist:" in itemSearch:
+        tradeSearch["query"]["stats"][0]["filters"].append({"id":"pseudo.pseudo_total_cold_resistance", "value":{"min": itemSearch["Eff Cold Resist:"]}})
+    else:
+        tradeSearch["query"]["stats"][0]["filters"].append({"id":"pseudo.pseudo_total_cold_resistance", "disabled": True})
+
+    if "Eff Lightning Resist:" in itemSearch:
+        tradeSearch["query"]["stats"][0]["filters"].append({"id":"pseudo.pseudo_total_lightning_resistance", "value":{"min": itemSearch["Eff Lightning Resist:"]}})
+    else:
+        tradeSearch["query"]["stats"][0]["filters"].append({"id":"pseudo.pseudo_total_lightning_resistance", "disabled": True})
+
+    if "Eff Chaos Resist:" in itemSearch:
+        tradeSearch["query"]["stats"][0]["filters"].append({"id":"pseudo.pseudo_total_chaos_resistance", "value":{"min": itemSearch["Eff Chaos Resist:"]}})
+    else:
+        tradeSearch["query"]["stats"][0]["filters"].append({"id":"pseudo.pseudo_total_chaos_resistance", "disabled": True})
+
+    if "Strength:" in itemSearch:
+        tradeSearch["query"]["stats"][0]["filters"].append({"id":"pseudo.pseudo_total_strength", "value":{"min": itemSearch["Strength:"]}})
+    else:
+        tradeSearch["query"]["stats"][0]["filters"].append({"id":"pseudo.pseudo_total_strength", "disabled": True})
+
+    if "Dexterity:" in itemSearch:
+        tradeSearch["query"]["stats"][0]["filters"].append({"id":"pseudo.pseudo_total_dexterity", "value":{"min": itemSearch["Dexterity:"]}})
+    else:
+        tradeSearch["query"]["stats"][0]["filters"].append({"id":"pseudo.pseudo_total_dexterity", "disabled": True})
+
+    if "Intelligence:" in itemSearch:
+        tradeSearch["query"]["stats"][0]["filters"].append({"id":"pseudo.pseudo_total_intelligence", "value":{"min": itemSearch["Intelligence:"]}})
+    else:
+        tradeSearch["query"]["stats"][0]["filters"].append({"id":"pseudo.pseudo_total_intelligence", "disabled": True})
+
+    if "Eff Ele Resist:" in itemSearch:
+        tradeSearch["query"]["stats"][1]["value"]["min"] = itemSearch["Eff Ele Resist:"]
+        tradeSearch["query"]["stats"][1]["filters"].append({"id":"pseudo.pseudo_total_fire_resistance"})
+        tradeSearch["query"]["stats"][1]["filters"].append({"id":"pseudo.pseudo_total_cold_resistance"})
+        tradeSearch["query"]["stats"][1]["filters"].append({"id":"pseudo.pseudo_total_lightning_resistance"})
+    else:
+        tradeSearch["query"]["stats"][1]["disabled"] = True
+        tradeSearch["query"]["stats"][1]["filters"].append({"id":"pseudo.pseudo_total_fire_resistance"})
+        tradeSearch["query"]["stats"][1]["filters"].append({"id":"pseudo.pseudo_total_cold_resistance"})
+        tradeSearch["query"]["stats"][1]["filters"].append({"id":"pseudo.pseudo_total_lightning_resistance"})
+
+    return json.dumps(tradeSearch)

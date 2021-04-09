@@ -13,6 +13,11 @@ headers = {
     'User-Agent': 'PoEHelper/0.1 (+pratts.eric@gmail.com)'
 }
 
+tradeHeaders = {
+    'User-Agent': 'PoEHelper/0.1 (+pratts.eric@gmail.com)',
+    'content-type': 'application/json'
+}
+
 class API:
 
     def __init__(self, settings):
@@ -24,6 +29,8 @@ class API:
         self.passiveURL = 'https://www.pathofexile.com/character-window/get-passive-skills?accountName={}&realm=pc&character={}' #Does not currently appear to have a rate limit
         self.characterItemURL = 'https://www.pathofexile.com/character-window/get-items'
         self.characterItemAPI = 'https://www.pathofexile.com/character-window/get-items'
+        self.tradeURL = 'https://www.pathofexile.com/api/trade/search/{}'
+        self.tradeAPI = 'https://www.pathofexile.com/api/trade/search/'
         self.rateLimit = RateLimiter()
 
     def updateStashTab(self, tabName):
@@ -101,8 +108,7 @@ class API:
                 return None
             else:
                 char = response.json()
-
-            self.rateLimit.processResponse(self.characterItemAPI, response.headers) #are these headers valid in non-200 status cases?
+                self.rateLimit.processResponse(self.characterItemAPI, response.headers) #are these headers valid in non-200 status cases?
 
         return char
 
@@ -129,8 +135,7 @@ class API:
                 for item in charResponse:
                     if item["name"] == character:
                         char = item
-
-            self.rateLimit.processResponse(self.characterItemAPI, response.headers) #are these headers valid in non-200 status cases?
+                    self.rateLimit.processResponse(self.characterItemAPI, response.headers) #are these headers valid in non-200 status cases?
 
         return char
     
@@ -155,8 +160,30 @@ class API:
         return passives
 
     def tradeSearch(self, parameters):
+        POESESSID = self.settings.currentSettings["POESESSID"]
+        league = self.settings.currentSettings["league"]
+        league = "Ritual" ##DELETE THIS AFTER TESTING
 
-        return
+        tradeID = ""
+
+        if self.rateLimit.checkRateLimit(self.tradeAPI):
+            cookies = {'POESESSID':POESESSID}
+            data = parameters
+            url = self.tradeURL.format(league)
+
+            response = requests.post(url, headers=tradeHeaders, cookies=cookies, data=data)
+            print("POST: {}".format(url))
+
+            if response.status_code != 200:
+                print("HTTP Error: " + str(response.status_code))
+                return None
+            else:
+                tradeID = response.json()["id"]
+                self.rateLimit.processResponse(self.tradeAPI, response.headers) #are these headers valid in non-200 status cases?
+
+        nonAPIURL = 'https://www.pathofexile.com/trade/search/{}'.format(league)
+
+        return "{}/{}".format(nonAPIURL, tradeID)
 
     def tradeItemFetch(self, ids):
 

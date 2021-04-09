@@ -28,7 +28,7 @@ class Character():
         self.oldFilterString = ""
         self.oldZoneString = ""
         self.HUDUpdate = None
-        self.charDefStats = {"Life": 0,"Fire": 0,"Cold": 0,"Lightning": 0,"Chaos": 0}
+        self.charDefStats = {"Life": 0,"Fire": 0,"Cold": 0,"Lightning": 0,"Chaos": 0, "Strength":0, "Dexterity":0, "Intelligence":0}
         self.equippedItemStats = {}
         self.characterUpdatedCallback = None
 
@@ -63,12 +63,12 @@ class Character():
         strIndex = text.find(": You have entered")
         self.currentZone = text[strIndex+19:-2]
 
-        self.parseInventoryForDefenses()
+        changed = self.parseInventoryForDefenses()
 
         if self.HUDUpdate != None:
             self.HUDUpdate(self.getCharacterHUDString())
         
-        if self.characterUpdatedCallback != None:
+        if self.characterUpdatedCallback != None and changed:
             self.characterUpdatedCallback()
     
     def logCallbackOnCharacterLevel(self, text):
@@ -249,12 +249,14 @@ class Character():
         return HUDString
     
     def parseInventoryForDefenses(self):
+        changed = False
+
         self.charDefStats = {"Life": 0,"Fire": 0,"Cold": 0,"Lightning": 0,"Chaos": 0, "Strength":0, "Dexterity":0, "Intelligence":0}
         
         equippedItems = []
 
         for item in self.inventory.worn.values():
-            if not("Flask" in item["inventoryId"] or "MainInventory" in item["inventoryId"]):
+            if not("Flask" in item["inventoryId"] or "MainInventory" in item["inventoryId"] or "Weapon2" in item["inventoryId"] or "Offhand2" in item["inventoryId"]):
                 equippedItems.append(item)
 
         for item in equippedItems:
@@ -262,10 +264,29 @@ class Character():
             for stat in self.charDefStats:
                 self.charDefStats[stat] += itemStats[stat]
 
-            self.equippedItemStats[item["inventoryId"]] = itemStats
+            if item["inventoryId"] in self.equippedItemStats:
+                oldItem = self.equippedItemStats[item["inventoryId"]]
+                for stat in oldItem:
+                    if "Score" not in stat and oldItem[stat] != itemStats[stat]:
+                        self.equippedItemStats[item["inventoryId"]] = itemStats
+                        changed = True
+                        break
+            else:
+                self.equippedItemStats[item["inventoryId"]] = itemStats
+                changed = True
+        
+        if changed:
+            #at this point, the charDefStats dict only contains stats from items. This is currently assumed before calculating gear scores
+            self.generateGearDefScores()
+
+        #this may not be the right place to combine the passive tree data and char def stats,
+        #but until a more complete method of generating gear scores is implemented, this is the simplest place
+        self.charDefStats["Strength"] += self.passiveTreeStats["grantedStrength"]
+        self.charDefStats["Dexterity"] += self.passiveTreeStats["grantedDexterity"]
+        self.charDefStats["Intelligence"] += self.passiveTreeStats["grantedIntelligence"]
 
         print(self.charDefStats)
-        self.generateGearDefScores()
+        return changed
     
     def generateGearDefScores(self):
         for invId, item in self.equippedItemStats.items():
@@ -314,8 +335,81 @@ class Character():
             for stat in self.passiveTreeStats:
                 if stat in node:
                     self.passiveTreeStats[stat] += node[stat]
+
+    def getEffectiveFireResist(self,item):
+        stats = self.equippedItemStats[item]
+
+        fire = self.charDefStats["Fire"] - stats["Fire"]
         
-        print(self.passiveTreeStats)
+        total = 0
+
+        if fire < 135:
+            total += min(135, self.charDefStats["Fire"]) - fire
+
+        return total
+
+    def getEffectiveColdResist(self,item):
+        stats = self.equippedItemStats[item]
+
+        cold = self.charDefStats["Cold"] - stats["Cold"]
+        
+        total = 0
+
+        if cold < 135:
+            total += min(135, self.charDefStats["Cold"]) - cold
+
+        return total
+
+    def getEffectiveLightningResist(self,item):
+        stats = self.equippedItemStats[item]
+
+        lightning = self.charDefStats["Lightning"] - stats["Lightning"]
+        
+        total = 0
+
+        if lightning < 135:
+            total += min(135, self.charDefStats["Lightning"]) - lightning
+
+        return total
+
+    def getEffectiveEleResist(self,item):
+        stats = self.equippedItemStats[item]
+
+        fire = self.charDefStats["Fire"] - stats["Fire"]
+        cold = self.charDefStats["Cold"] - stats["Cold"]
+        lightning = self.charDefStats["Lightning"] - stats["Lightning"]
+
+        total = 0
+
+        if fire < 135:
+            total += min(135, self.charDefStats["Fire"]) - fire
+        if cold < 135:
+            total += min(135, self.charDefStats["Cold"]) - cold
+        if lightning < 135:
+            total += min(135, self.charDefStats["Lightning"]) - lightning
+
+        return total
+
+    def getEffectiveResist(self,item):
+        stats = self.equippedItemStats[item]
+
+        fire = self.charDefStats["Fire"] - stats["Fire"]
+        cold = self.charDefStats["Cold"] - stats["Cold"]
+        lightning = self.charDefStats["Lightning"] - stats["Lightning"]
+        chaos = self.charDefStats["Chaos"] - stats["Chaos"]
+
+        total = 0
+
+        if fire < 135:
+            total += min(135, self.charDefStats["Fire"]) - fire
+        if cold < 135:
+            total += min(135, self.charDefStats["Cold"]) - cold
+        if lightning < 135:
+            total += min(135, self.charDefStats["Lightning"]) - lightning
+        if chaos < 135:
+            total += min(135, self.charDefStats["Chaos"]) - chaos
+
+        return total
 
 def getParsedItemDefenses(item):
     resRegex = r'\+(\d*)% to (.*) Resistance'

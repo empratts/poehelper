@@ -4,3 +4,4 @@ backup_settings.json
 __pycache*
 .vscode*
 zonefix.py
+tradeAPITest.py
